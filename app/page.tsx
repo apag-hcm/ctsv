@@ -253,7 +253,7 @@ export default function StudentHomePage() {
                     disabled={loading}
                     className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#8B0000] to-red-800 hover:from-red-900 hover:to-red-950 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-xl hover:shadow-red-900/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 tracking-wide"
                   >
-                    <span>{loading ? 'Đang xác thực...' : 'Gửi hồ sơ đăng ký xét duyệt KTX'}</span>
+                    <span>{loading ? 'Đang xác thực...' : 'Hoàn thiện Hồ sơ Tân Sinh viên'}</span>
                     <span>→</span>
                   </button>
                 </div>
