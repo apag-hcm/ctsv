@@ -175,7 +175,7 @@ export default function APAGAdminKTXPortal() {
     'quanly'
   );
 
-  // Modal đăng nhập Admin (nếu chưa có phiên làm việc)
+  // Modal đăng nhập Admin
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -276,7 +276,6 @@ export default function APAGAdminKTXPortal() {
     }
   }, []);
 
-  // Xử lý Đăng nhập Admin
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -291,7 +290,6 @@ export default function APAGAdminKTXPortal() {
     try {
       setActionLoading(true);
 
-      // Kiểm tra trong bảng `admin_users`
       const { data: adminUser, error } = await supabase
         .from('admin_users')
         .select('*')
@@ -312,6 +310,7 @@ export default function APAGAdminKTXPortal() {
         setShowLoginModal(false);
         setLoginEmail('');
         setLoginPassword('');
+        setMainTab('quanly');
         loadAllData();
       } else {
         setLoginError('Email hoặc Mật khẩu quản trị không chính xác!');
@@ -823,7 +822,6 @@ export default function APAGAdminKTXPortal() {
       const emailClean = formAdminUser.email.trim().toLowerCase();
       const { error } = await supabase.from('admin_users').insert([
         {
-          admin_id: crypto.randomUUID(),
           email: emailClean,
           ho_ten: formAdminUser.ho_ten.trim(),
           password_hash: formAdminUser.password.trim(),
@@ -976,6 +974,9 @@ export default function APAGAdminKTXPortal() {
     {}
   );
 
+  // Kiểm tra quyền Super Admin hiện tại
+  const isSuperAdmin = currentAdmin?.role_khoa === 'SUPER_ADMIN';
+
   // NẾU CHƯA ĐĂNG NHẬP -> HIỆN MODAL ĐĂNG NHẬP BẢO MẬT TUYỆT ĐỐI
   if (!currentAdmin) {
     return (
@@ -1066,65 +1067,75 @@ export default function APAGAdminKTXPortal() {
             >
               Quản lý & Duyệt đơn
             </button>
-            <button
-              onClick={() => setMainTab('caidat')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
-                mainTab === 'caidat'
-                  ? 'bg-[#0E1E45] text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <span>⚙️</span> Cài đặt & Cấu hình
-            </button>
-            <button
-              onClick={() => setMainTab('phanquyen')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
-                mainTab === 'phanquyen'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200'
-              }`}
-            >
-              <span>🛡️</span> Phân Quyền ({adminUsersList.length})
-            </button>
+
+            {/* CHỈ SUPER_ADMIN MỚI NHÌN THẤY 2 TAB NÀY */}
+            {isSuperAdmin && (
+              <>
+                <button
+                  onClick={() => setMainTab('caidat')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                    mainTab === 'caidat'
+                      ? 'bg-[#0E1E45] text-white shadow-sm'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <span>⚙️</span> Cài đặt & Cấu hình
+                </button>
+                <button
+                  onClick={() => setMainTab('phanquyen')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                    mainTab === 'phanquyen'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200'
+                  }`}
+                >
+                  <span>🛡️</span> Phân Quyền ({adminUsersList.length})
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2 w-full md:w-auto">
-            <button
-              onClick={togglePortalStatus}
-              disabled={actionLoading}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold text-white transition flex items-center gap-1.5 shadow-sm cursor-pointer ${
-                systemConfigs.TRANG_THAI_CONG === 'OPEN' ||
-                systemConfigs.TRANG_THAI_CONG === 'AUTO'
-                  ? 'bg-[#0E1E45] hover:bg-blue-900'
-                  : 'bg-red-600 hover:bg-red-700'
-              }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  systemConfigs.TRANG_THAI_CONG !== 'CLOSED'
-                    ? 'bg-emerald-400 animate-pulse'
-                    : 'bg-white'
+            {isSuperAdmin && (
+              <button
+                onClick={togglePortalStatus}
+                disabled={actionLoading}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold text-white transition flex items-center gap-1.5 shadow-sm cursor-pointer ${
+                  systemConfigs.TRANG_THAI_CONG === 'OPEN' ||
+                  systemConfigs.TRANG_THAI_CONG === 'AUTO'
+                    ? 'bg-[#0E1E45] hover:bg-blue-900'
+                    : 'bg-red-600 hover:bg-red-700'
                 }`}
-              ></span>
-              <span>
-                Cổng:{' '}
-                {systemConfigs.TRANG_THAI_CONG === 'AUTO'
-                  ? 'TỰ ĐỘNG'
-                  : systemConfigs.TRANG_THAI_CONG === 'OPEN'
-                  ? 'ĐANG MỞ'
-                  : 'ĐÃ ĐÓNG'}
-              </span>
-            </button>
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    systemConfigs.TRANG_THAI_CONG !== 'CLOSED'
+                      ? 'bg-emerald-400 animate-pulse'
+                      : 'bg-white'
+                  }`}
+                ></span>
+                <span>
+                  Cổng:{' '}
+                  {systemConfigs.TRANG_THAI_CONG === 'AUTO'
+                    ? 'TỰ ĐỘNG'
+                    : systemConfigs.TRANG_THAI_CONG === 'OPEN'
+                    ? 'ĐANG MỞ'
+                    : 'ĐÃ ĐÓNG'}
+                </span>
+              </button>
+            )}
 
-            <label className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
-              <span>📥 Nạp Excel</span>
-              <input
-                type="file"
-                accept=".xlsx, .xls, .csv"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-            </label>
+            {isSuperAdmin && (
+              <label className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                <span>📥 Nạp Excel</span>
+                <input
+                  type="file"
+                  accept=".xlsx, .xls, .csv"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </label>
+            )}
 
             <button
               onClick={() => setShowExportModal(true)}
@@ -1498,8 +1509,8 @@ export default function APAGAdminKTXPortal() {
               </div>
             </div>
           </div>
-        ) : mainTab === 'caidat' ? (
-          /* TAB 2: CÀI ĐẶT & CẤU HÌNH CMS */
+        ) : isSuperAdmin && mainTab === 'caidat' ? (
+          /* TAB 2: CÀI ĐẶT & CẤU HÌNH CMS (CHỈ SUPER_ADMIN) */
           <div className="p-4 sm:p-8 space-y-8 bg-gray-50/50">
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center">
@@ -2003,8 +2014,8 @@ export default function APAGAdminKTXPortal() {
               </form>
             </div>
           </div>
-        ) : (
-          /* TAB 3: PHÂN QUYỀN */
+        ) : isSuperAdmin && mainTab === 'phanquyen' ? (
+          /* TAB 3: PHÂN QUYỀN (CHỈ SUPER_ADMIN) */
           <div className="p-4 sm:p-8 space-y-6 bg-gray-50/50">
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
@@ -2128,7 +2139,7 @@ export default function APAGAdminKTXPortal() {
               </div>
             </div>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* MODAL 1: CHỌN TRƯỜNG DỮ LIỆU XUẤT EXCEL */}
