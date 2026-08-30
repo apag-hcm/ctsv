@@ -9,12 +9,12 @@ export const metadata: Metadata = {
   title: 'Cổng Đăng Ký Thông tin Tân Sinh viên - APAG.HCM',
   description: 'Hệ thống đăng ký xét duyệt thông tin tân sinh viên trực tuyến APAG.HCM',
   icons: {
-    icon: 'https://lh3.googleusercontent.com/d/1EhYcDVJc8jezBSiGS1jJ6XM0EXxjvFKJ',
+    icon: 'https://lh3.googleusercontent.com/d/19K2gGXmuRqSmKQLJXV1F5FfpQMx_Grwb',
   },
   openGraph: {
     title: 'Cổng Đăng Ký Thông tin Tân Sinh viên - APAG.HCM',
     description: 'Hệ thống đăng ký xét duyệt thông tin tân sinh viên trực tuyến APAG.HCM',
-    images: ['https://lh3.googleusercontent.com/d/1EhYcDVJc8jezBSiGS1jJ6XM0EXxjvFKJ'],
+    images: ['https://lh3.googleusercontent.com/d/19K2gGXmuRqSmKQLJXV1F5FfpQMx_Grwb'],
   },
 }
 
