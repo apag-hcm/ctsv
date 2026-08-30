@@ -156,11 +156,12 @@ export default function StudentHomePage() {
               <h1 className="text-xs sm:text-sm font-black text-[#0E1E45] uppercase tracking-tight leading-tight">
                 HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG
               </h1>
-              <h2 className="text-[11px] sm:text-xs font-bold text-[#8B0000] uppercase tracking-tight leading-tight mt-0.5">
+              {/* ĐÃ IN ĐẬM DÒNG PHÂN HIỆU */}
+              <h2 className="text-[11px] sm:text-xs font-black text-[#8B0000] uppercase tracking-tight leading-tight mt-0.5">
                 PHÂN HIỆU TẠI THÀNH PHỐ HỒ CHÍ MINH
               </h2>
-              <div className="text-[10px] sm:text-[11px] font-extrabold text-amber-600 uppercase tracking-wider mt-0.5">
-                CỔNG ĐĂNG KÝ XÉT DUYỆT KÝ TÚC XÁ ĐẠI HỌC CHÍNH QUY NĂM {systemConfigs.NAM_HOC}
+              <div className="text-[10px] sm:text-[11px] font-extrabold text-[#D97706] uppercase tracking-wider mt-0.5">
+                CỔNG THÔNG TIN TÂN SINH VIÊN ĐẠI HỌC CHÍNH QUY NĂM {systemConfigs.NAM_HOC}
               </div>
             </div>
           </div>
@@ -181,7 +182,7 @@ export default function StudentHomePage() {
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* CỘT TRÁI: GIỚI THIỆU & FORM ĐĂNG NHẬP */}
+          {/* CỘT TRÁI: GIỚI THIỆU & FORM ĐĂNG NHẬP NỔI BẬT */}
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold">
               <span>🎓</span> Khóa tuyển sinh {systemConfigs.NAM_HOC} • Đại học chính quy
@@ -206,21 +207,26 @@ export default function StudentHomePage() {
               </div>
             </div>
 
-            {/* FORM XÁC THỰC CCCD SINH VIÊN */}
-            <div className="bg-white text-gray-900 p-6 sm:p-8 rounded-2xl shadow-2xl space-y-4 max-w-xl border border-gray-200">
+            {/* FORM XÁC THỰC CCCD SINH VIÊN (NỔI BẬT VỚI MÀU SẮC SANG TRỌNG) */}
+            <div className="bg-gradient-to-br from-white via-slate-50 to-blue-50/40 text-gray-900 p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 max-w-xl border-2 border-amber-400/40 ring-4 ring-amber-400/10 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#8B0000] via-amber-500 to-[#0E1E45]"></div>
+
               <div>
-                <h3 className="text-base sm:text-lg font-bold text-[#0E1E45]">
+                <div className="inline-block px-2.5 py-0.5 rounded-full bg-red-100 text-[#8B0000] text-[10px] font-extrabold uppercase tracking-wider mb-1.5">
+                  Cổng trực tuyến 24/7
+                </div>
+                <h3 className="text-base sm:text-xl font-black text-[#0E1E45]">
                   Đăng Nhập / Hoàn Thiện Hồ Sơ Thí Sinh
                 </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-gray-600 mt-0.5 font-medium">
                   Nhập số Căn cước công dân hoặc Số định danh cá nhân (Số ĐDCN) đã đăng ký xét tuyển
                 </p>
               </div>
 
-              <form onSubmit={handleLoginOrRegister} className="space-y-3">
+              <form onSubmit={handleLoginOrRegister} className="space-y-3.5">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                    Số CCCD / Số ĐDCN (*):
+                  <label className="block text-xs font-bold text-gray-800 mb-1.5 flex items-center gap-1">
+                    <span>💳</span> Số CCCD / Số ĐDCN (*):
                   </label>
                   <input
                     type="text"
@@ -228,24 +234,24 @@ export default function StudentHomePage() {
                     onChange={(e) => setCccdInput(e.target.value)}
                     placeholder="Nhập đúng 12 số CCCD..."
                     required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] focus:outline-none text-xs sm:text-sm font-mono font-bold text-gray-900"
+                    className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-300 focus:border-[#0E1E45] focus:ring-4 focus:ring-[#0E1E45]/10 focus:outline-none text-xs sm:text-sm font-mono font-bold text-gray-900 bg-white shadow-inner transition"
                   />
-                  <p className="text-[11px] text-gray-400 mt-1">
-                    💡 Nhập số CCCD để hệ thống tự động nhận diện thông tin trúng tuyển của bạn.
+                  <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1">
+                    <span>💡</span> Nhập số CCCD để hệ thống tự động nhận diện thông tin trúng tuyển của bạn.
                   </p>
                 </div>
 
                 {errorMessage && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-bold">
-                    {errorMessage}
+                  <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-bold flex items-center gap-2">
+                    <span>⚠️</span> {errorMessage}
                   </div>
                 )}
 
-                <div className="pt-1 flex justify-end">
+                <div className="pt-2 flex justify-end">
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-8 py-3 bg-[#8B0000] hover:bg-[#700000] text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg transition disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                    className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#8B0000] to-red-800 hover:from-red-900 hover:to-red-950 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-xl hover:shadow-red-900/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 tracking-wide"
                   >
                     <span>{loading ? 'Đang xác thực...' : 'Gửi hồ sơ đăng ký xét duyệt KTX'}</span>
                     <span>→</span>
@@ -286,18 +292,35 @@ export default function StudentHomePage() {
             </div>
 
             {/* BẬC ƯU TIÊN NẠP TỪ CSDL */}
-            <div className="bg-[#091430] border border-blue-900/60 p-5 rounded-2xl shadow-xl space-y-3 text-xs">
+            <div className="bg-gradient-to-br from-[#0e1c3f] via-[#0b1632] to-[#121c38] border border-blue-400/30 p-6 rounded-3xl shadow-2xl space-y-4 text-xs relative overflow-hidden ring-1 ring-white/10">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
               <div className="flex justify-between items-center font-bold">
-                <span className="text-amber-300">💎 BẬC ƯU TIÊN XÉT DUYỆT KTX {systemConfigs.NAM_HOC}</span>
-                <span className="px-2.5 py-0.5 rounded bg-purple-900/50 text-purple-200 text-[10px]">Tiêu chuẩn</span>
+                <span className="text-amber-300 tracking-wide flex items-center gap-1.5 text-sm">
+                  <span>💎</span> BẬC ƯU TIÊN XÉT DUYỆT KTX {systemConfigs.NAM_HOC}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-[10px] font-bold tracking-wider">
+                  Tiêu chuẩn
+                </span>
               </div>
 
-              <div className="space-y-2 font-medium">
+              <div className="space-y-2.5 font-medium">
                 {bacUuTienList.length > 0 ? (
                   bacUuTienList.map((b, idx) => (
-                    <div key={b.id} className={`p-3 rounded-xl border space-y-0.5 ${idx === 0 ? 'bg-red-950/40 border-red-900/50' : 'bg-blue-950/40 border-blue-900/50'}`}>
-                      <div className={`font-bold ${idx === 0 ? 'text-red-300' : 'text-blue-300'}`}>{b.ten_bac}</div>
-                      <p className="text-[11px] text-gray-300">{b.mo_ta_tieu_chi}</p>
+                    <div
+                      key={b.id}
+                      className={`p-3.5 rounded-2xl border transition-all ${
+                        idx === 0
+                          ? 'bg-gradient-to-r from-red-950/50 via-rose-950/30 to-transparent border-red-500/40 shadow-inner'
+                          : idx === 1
+                          ? 'bg-gradient-to-r from-blue-950/50 via-indigo-950/30 to-transparent border-blue-500/30'
+                          : 'bg-black/30 border-blue-900/40 hover:border-blue-700/60'
+                      }`}
+                    >
+                      <div className={`font-bold text-sm mb-0.5 ${idx === 0 ? 'text-rose-300' : idx === 1 ? 'text-blue-300' : 'text-slate-200'}`}>
+                        {b.ten_bac}
+                      </div>
+                      <p className="text-[11px] text-gray-300 leading-relaxed">{b.mo_ta_tieu_chi}</p>
                     </div>
                   ))
                 ) : (
@@ -307,21 +330,34 @@ export default function StudentHomePage() {
             </div>
 
             {/* ĐỊNH MỨC KINH PHÍ KTX NẠP TỪ CSDL */}
-            <div className="bg-[#091430] border border-blue-900/60 p-5 rounded-2xl shadow-xl space-y-3 text-xs">
+            <div className="bg-gradient-to-br from-[#0c1a36] via-[#09132b] to-[#0f213f] border border-blue-400/30 p-6 rounded-3xl shadow-2xl space-y-4 text-xs relative overflow-hidden ring-1 ring-white/10">
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
               <div className="flex justify-between items-center font-bold">
-                <span className="text-amber-300">💰 ĐỊNH MỨC KINH PHÍ KÝ TÚC XÁ {systemConfigs.NAM_HOC}</span>
-                <span className="px-2.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px]">Ưu đãi</span>
+                <span className="text-amber-300 tracking-wide flex items-center gap-1.5 text-sm">
+                  <span>💰</span> ĐỊNH MỨC KINH PHÍ KÝ TÚC XÁ {systemConfigs.NAM_HOC}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[10px] font-bold tracking-wider">
+                  Ưu đãi
+                </span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {coSoKtxList.length > 0 ? (
                   coSoKtxList.map((room) => (
-                    <div key={room.id_toa_nha} className="p-3 bg-black/40 border border-blue-900/40 rounded-xl flex justify-between items-center">
-                      <div>
-                        <div className="font-bold text-gray-200">{room.ten_toa_nha}</div>
-                        <div className="text-[11px] text-gray-400">{room.tong_so_giuong} chỗ • Còn {room.so_giuong_trong} chỗ trống</div>
+                    <div
+                      key={room.id_toa_nha}
+                      className="p-4 bg-gradient-to-r from-black/60 to-blue-950/40 border border-blue-900/60 rounded-2xl flex justify-between items-center shadow-md hover:border-blue-500/50 transition"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="font-extrabold text-white text-sm">{room.ten_toa_nha}</div>
+                        <div className="text-[11px] text-emerald-400 font-medium">
+                          {room.tong_so_giuong} chỗ • <span className="text-gray-300">Còn <strong className="text-amber-300">{room.so_giuong_trong}</strong> chỗ trống</span>
+                        </div>
                       </div>
-                      <div className="font-mono font-bold text-amber-400 text-xs sm:text-sm">{room.loai_phong}</div>
+                      <div className="font-mono font-black text-amber-400 text-xs sm:text-sm bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 shrink-0">
+                        {room.loai_phong}
+                      </div>
                     </div>
                   ))
                 ) : (
