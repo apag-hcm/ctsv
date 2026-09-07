@@ -185,6 +185,8 @@ export default function StudentDashboardPage() {
 
     nganh_hoc: '',
     diem_xet_tuyen: '' as any,
+    quoc_tich: 'Việt Nam',
+    dan_toc: 'Kinh',
 
     dia_chi_chi_tiet_tt: '',
     tinh_thanh_tt: '',
@@ -207,8 +209,6 @@ export default function StudentDashboardPage() {
     han_su_dung_bhyt: '',
     doi_tuong_bhyt: '',
     da_kham_sk_kh228: '',
-    quoc_tich: '',
-    dan_toc: '',
     tinh_kcb: '79',
     tinh_kcb_ten: 'Thành phố Hồ Chí Minh',
     benh_vien_kcb: '',
@@ -376,6 +376,9 @@ export default function StudentDashboardPage() {
         email_sv: st.email_sv || '',
         nganh_hoc: st.nganh_hoc || '',
         diem_xet_tuyen: st.diem_xet_tuyen !== null && st.diem_xet_tuyen !== undefined ? Number(st.diem_xet_tuyen) : '',
+        quoc_tich: bhyt?.quoc_tich || st.quoc_tich || 'Việt Nam',
+        dan_toc: bhyt?.dan_toc || st.dan_toc || 'Kinh',
+
         dia_chi_chi_tiet_tt: chiTietTT,
         tinh_thanh_tt: tinhTT,
         phuong_xa_tt: xaTT,
@@ -396,8 +399,6 @@ export default function StudentDashboardPage() {
         han_su_dung_bhyt: bhyt?.han_su_dung_bhyt || '',
         doi_tuong_bhyt: bhyt?.doi_tuong_bhyt || '',
         da_kham_sk_kh228: bhyt?.da_kham_sk_kh228 || '',
-        quoc_tich: bhyt?.quoc_tich || '',
-        dan_toc: bhyt?.dan_toc || '',
         tinh_kcb: bhyt?.tinh_kcb_id || '79',
         tinh_kcb_ten: bhyt?.tinh_kcb || 'Thành phố Hồ Chí Minh',
         benh_vien_kcb: bhyt?.benh_vien_kcb || '',
@@ -656,6 +657,8 @@ export default function StudentDashboardPage() {
           email_sv: formData.email_sv.trim().toLowerCase(),
           nganh_hoc: formData.nganh_hoc,
           diem_xet_tuyen: parseFloat(String(formData.diem_xet_tuyen)) || 0,
+          quoc_tich: formData.quoc_tich,
+          dan_toc: formData.dan_toc,
           ho_khau_thuong_tru: fullAddressTT,
           dia_chi_tam_tru: fullAddressTamTru,
           trang_thai_ho_so: 'DA_HOAN_THIEN',
@@ -795,7 +798,7 @@ export default function StudentDashboardPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* MỤC 1: THÔNG TIN CÁ NHÂN & THÔNG TIN TRÚNG TUYỂN */}
+          {/* MỤC 1: THÔNG TIN CÁ NHÂN & THÔNG TIN TRÚNG TUYỂN (ĐÃ ĐƯA QUỐC TỊCH & DÂN TỘC LÊN ĐÂY) */}
           <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-6">
             <div className="border-b border-gray-100 pb-3">
               <h3 className="text-sm sm:text-base font-bold text-[#0E1E45] flex items-center gap-2">
@@ -901,6 +904,49 @@ export default function StudentDashboardPage() {
                     <option value="Nam">Nam</option>
                     <option value="Nữ">Nữ</option>
                   </select>
+                </div>
+              </div>
+
+              {/* QUỐC TỊCH & DÂN TỘC ĐÃ ĐƯỢC ĐƯA LÊN MỤC 1 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1.5">
+                    Quốc tịch <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    list="quocTichDbList"
+                    value={formData.quoc_tich}
+                    onChange={(e) => setFormData({ ...formData, quoc_tich: e.target.value })}
+                    placeholder="Gõ tìm hoặc chọn Quốc tịch..."
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] focus:outline-none font-medium bg-white"
+                  />
+                  <datalist id="quocTichDbList">
+                    {quocGiaList.map((qt) => (
+                      <option key={qt} value={qt} />
+                    ))}
+                  </datalist>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1.5">
+                    Dân tộc <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    list="danTocDbList"
+                    value={formData.dan_toc}
+                    onChange={(e) => setFormData({ ...formData, dan_toc: e.target.value })}
+                    placeholder="Gõ tìm hoặc chọn Dân tộc..."
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] focus:outline-none font-medium bg-white"
+                  />
+                  <datalist id="danTocDbList">
+                    {danTocList.map((dt) => (
+                      <option key={dt} value={dt} />
+                    ))}
+                  </datalist>
                 </div>
               </div>
 
@@ -1418,7 +1464,7 @@ export default function StudentDashboardPage() {
             )}
           </div>
 
-          {/* MỤC 3: BHYT & SỨC KHỎE (TÍCH HỢP ĐỦ MẪU D03-TS) */}
+          {/* MỤC 3: BHYT & SỨC KHỎE (TÍCH HỢP ĐẦY ĐỦ MẪU D03-TS) */}
           <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-6">
             <div className="border-b border-gray-100 pb-3 flex justify-between items-center">
               <div>
@@ -1515,7 +1561,7 @@ export default function StudentDashboardPage() {
                 </div>
               </div>
 
-              {/* PHẦN MỚI TÍCH HỢP: NƠI ĐĂNG KÝ KCB BAN ĐẦU CHO MẪU D03-TS */}
+              {/* NƠI ĐĂNG KÝ KCB BAN ĐẦU CHO MẪU D03-TS */}
               <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-200 space-y-4">
                 <div className="font-bold text-xs uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
                   <span>🏥</span> Đăng Ký Nơi Khám Chữa Bệnh (KCB) Ban Đầu <span className="text-red-500">*</span>
@@ -1565,48 +1611,6 @@ export default function StudentDashboardPage() {
                       ))}
                     </select>
                   </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1.5">
-                    Quốc tịch <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    list="quocTichDbList"
-                    value={formData.quoc_tich}
-                    onChange={(e) => setFormData({ ...formData, quoc_tich: e.target.value })}
-                    placeholder="Gõ tìm hoặc chọn Quốc tịch..."
-                    required
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] focus:outline-none font-medium bg-white"
-                  />
-                  <datalist id="quocTichDbList">
-                    {quocGiaList.map((qt) => (
-                      <option key={qt} value={qt} />
-                    ))}
-                  </datalist>
-                </div>
-
-                <div>
-                  <label className="block font-bold text-gray-700 mb-1.5">
-                    Dân tộc <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    list="danTocDbList"
-                    value={formData.dan_toc}
-                    onChange={(e) => setFormData({ ...formData, dan_toc: e.target.value })}
-                    placeholder="Gõ tìm hoặc chọn Dân tộc..."
-                    required
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] focus:outline-none font-medium bg-white"
-                  />
-                  <datalist id="danTocDbList">
-                    {danTocList.map((dt) => (
-                      <option key={dt} value={dt} />
-                    ))}
-                  </datalist>
                 </div>
               </div>
             </div>
