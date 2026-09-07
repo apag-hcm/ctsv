@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/utils/supabase/client';
 
 // =========================================================================
-// 1. COMPONENT HEADER CHUẨN NHẬN DIỆN APAG (ĐÃ IN ĐẬM PHÂN HIỆU)
+// 1. COMPONENT HEADER CHUẨN NHẬN DIỆN APAG
 // =========================================================================
 function AppHeader({
   namHoc = '2027',
@@ -32,7 +32,6 @@ function AppHeader({
             <h1 className="text-xs sm:text-sm font-black text-[#0E1E45] uppercase tracking-tight leading-tight">
               HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG
             </h1>
-            {/* ĐÃ IN ĐẬM DÒNG PHÂN HIỆU */}
             <h2 className="text-[11px] sm:text-xs font-black text-[#8B0000] uppercase tracking-tight leading-tight mt-0.5">
               PHÂN HIỆU TẠI THÀNH PHỐ HỒ CHÍ MINH
             </h2>
@@ -129,6 +128,33 @@ export default function StudentDashboardPage() {
   const [quocGiaList, setQuocGiaList] = useState<string[]>([]);
   const [danTocList, setDanTocList] = useState<string[]>([]);
 
+  // Danh mục Tỉnh và Bệnh viện mẫu KCB (Mẫu D03-TS)
+  const danhSachTinhKcb = [
+    { id: '79', ten: 'Thành phố Hồ Chí Minh' },
+    { id: '75', ten: 'Tỉnh Đồng Nai' },
+    { id: '74', ten: 'Tỉnh Bình Dương' },
+    { id: '72', ten: 'Tỉnh Tây Ninh' },
+  ];
+
+  const danhSachBenhVienKcb: Record<string, { id: string; ten: string }[]> = {
+    '79': [
+      { id: '79001', ten: 'Bệnh viện Chợ Rẫy' },
+      { id: '79002', ten: 'Bệnh viện Nhân dân 115' },
+      { id: '79003', ten: 'Bệnh viện Đại học Y Dược TP.HCM' },
+      { id: '79004', ten: 'Bệnh viện Thống Nhất' },
+    ],
+    '75': [
+      { id: '75001', ten: 'Bệnh viện Đa khoa Đồng Nai' },
+      { id: '75002', ten: 'Bệnh viện Nhi đồng Đồng Nai' },
+    ],
+    '74': [
+      { id: '74001', ten: 'Bệnh viện Đa khoa tỉnh Bình Dương' },
+    ],
+    '72': [
+      { id: '72001', ten: 'Bệnh viện Đa khoa tỉnh Tây Ninh' },
+    ],
+  };
+
   // Tùy chọn Nơi cấp CCCD
   const [noiCapType, setNoiCapType] = useState<string>('');
   const [customNoiCap, setCustomNoiCap] = useState<string>('');
@@ -183,6 +209,9 @@ export default function StudentDashboardPage() {
     da_kham_sk_kh228: '',
     quoc_tich: '',
     dan_toc: '',
+    tinh_kcb: '79',
+    tinh_kcb_ten: 'Thành phố Hồ Chí Minh',
+    benh_vien_kcb: '',
   });
 
   useEffect(() => {
@@ -369,6 +398,9 @@ export default function StudentDashboardPage() {
         da_kham_sk_kh228: bhyt?.da_kham_sk_kh228 || '',
         quoc_tich: bhyt?.quoc_tich || '',
         dan_toc: bhyt?.dan_toc || '',
+        tinh_kcb: bhyt?.tinh_kcb_id || '79',
+        tinh_kcb_ten: bhyt?.tinh_kcb || 'Thành phố Hồ Chí Minh',
+        benh_vien_kcb: bhyt?.benh_vien_kcb || '',
       });
     } catch (err: any) {
       console.error('Lỗi tải dữ liệu:', err);
@@ -670,6 +702,9 @@ export default function StudentDashboardPage() {
           da_kham_sk_kh228: formData.da_kham_sk_kh228,
           quoc_tich: formData.quoc_tich,
           dan_toc: formData.dan_toc,
+          tinh_kcb: formData.tinh_kcb_ten,
+          tinh_kcb_id: formData.tinh_kcb,
+          benh_vien_kcb: formData.benh_vien_kcb,
           trang_thai_duyet: bhytReg?.trang_thai_duyet || 'CHO_DUYET',
           is_deleted: false,
           updated_at: new Date().toISOString(),
@@ -1058,7 +1093,7 @@ export default function StudentDashboardPage() {
 
                 {formData.co_tam_tru && (
                   <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-200 space-y-3">
-                    <div className="font-bold text-xs uppercase tracking-wider text-brand-blue flex items-center gap-1.5">
+                    <div className="font-bold text-xs uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
                       <span>🏠</span> Địa chỉ Tạm trú (Xác định trên VNeID) <span className="text-red-500">*</span>
                     </div>
 
@@ -1383,15 +1418,15 @@ export default function StudentDashboardPage() {
             )}
           </div>
 
-          {/* MỤC 3: BHYT & SỨC KHỎE */}
+          {/* MỤC 3: BHYT & SỨC KHỎE (TÍCH HỢP ĐỦ MẪU D03-TS) */}
           <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-6">
             <div className="border-b border-gray-100 pb-3 flex justify-between items-center">
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-[#0E1E45] flex items-center gap-2">
-                  <span>🏥</span> 3. KÊ KHAI THÔNG TIN BẢO HIỂM Y TẾ (BHYT)
+                  <span>🏥</span> 3. KÊ KHAI THÔNG TIN BẢO HIỂM Y TẾ (BHYT) & NƠI KCB BAN ĐẦU
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Phục vụ công tác cấp thẻ BHYT học sinh - sinh viên và quyền lợi chăm sóc sức khỏe ban đầu
+                  Phục vụ công tác cấp thẻ BHYT học sinh - sinh viên và xuất file chuẩn D03-TS gửi cơ quan bảo hiểm
                 </p>
               </div>
               {bhytReg && (
@@ -1443,29 +1478,29 @@ export default function StudentDashboardPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-gray-700 mb-1.5">
-                  Đối tượng tham gia BHYT năm học 2026 - 2027 <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.doi_tuong_bhyt}
-                  onChange={(e) => setFormData({ ...formData, doi_tuong_bhyt: e.target.value })}
-                  required
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] focus:outline-none bg-white font-semibold cursor-pointer"
-                >
-                  <option value="" disabled>-- Chọn đối tượng tham gia BHYT --</option>
-                  {doiTuongBhytList.map((dt) => (
-                    <option key={dt.id} value={dt.ten_doi_tuong}>
-                      {dt.ten_doi_tuong}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1 items-end">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1.5 min-h-[36px] flex items-end leading-tight">
-                    <span>Khám SK theo KH số 228/KH-UBND của UBND TP.HCM tại địa phương? <span className="text-red-500">*</span></span>
+                  <label className="block font-bold text-gray-700 mb-1.5">
+                    Đối tượng tham gia BHYT năm học 2026 - 2027 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={formData.doi_tuong_bhyt}
+                    onChange={(e) => setFormData({ ...formData, doi_tuong_bhyt: e.target.value })}
+                    required
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] focus:outline-none bg-white font-semibold cursor-pointer"
+                  >
+                    <option value="" disabled>-- Chọn đối tượng tham gia BHYT --</option>
+                    {doiTuongBhytList.map((dt) => (
+                      <option key={dt.id} value={dt.ten_doi_tuong}>
+                        {dt.ten_doi_tuong}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1.5">
+                    Khám SK theo KH số 228/KH-UBND của UBND TP.HCM tại địa phương? <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.da_kham_sk_kh228}
@@ -1478,10 +1513,65 @@ export default function StudentDashboardPage() {
                     <option value="Đã tham gia">Đã tham gia</option>
                   </select>
                 </div>
+              </div>
 
+              {/* PHẦN MỚI TÍCH HỢP: NƠI ĐĂNG KÝ KCB BAN ĐẦU CHO MẪU D03-TS */}
+              <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-200 space-y-4">
+                <div className="font-bold text-xs uppercase tracking-wider text-blue-900 flex items-center gap-1.5">
+                  <span>🏥</span> Đăng Ký Nơi Khám Chữa Bệnh (KCB) Ban Đầu <span className="text-red-500">*</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1.5">
+                      Tỉnh / Thành phố KCB ban đầu (*):
+                    </label>
+                    <select
+                      value={formData.tinh_kcb}
+                      onChange={(e) => {
+                        const selectedTinh = danhSachTinhKcb.find((t) => t.id === e.target.value);
+                        setFormData({
+                          ...formData,
+                          tinh_kcb: e.target.value,
+                          tinh_kcb_ten: selectedTinh ? selectedTinh.ten : '',
+                          benh_vien_kcb: '', // Reset bệnh viện khi đổi tỉnh
+                        });
+                      }}
+                      required
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] focus:outline-none bg-white font-semibold cursor-pointer"
+                    >
+                      {danhSachTinhKcb.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.ten}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-gray-700 mb-1.5">
+                      Bệnh viện nhận KCB ban đầu (*):
+                    </label>
+                    <select
+                      value={formData.benh_vien_kcb}
+                      onChange={(e) => setFormData({ ...formData, benh_vien_kcb: e.target.value })}
+                      required
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] focus:outline-none bg-white font-semibold cursor-pointer"
+                    >
+                      <option value="" disabled>-- Chọn bệnh viện KCB --</option>
+                      {(danhSachBenhVienKcb[formData.tinh_kcb] || []).map((bv) => (
+                        <option key={bv.id} value={bv.ten}>
+                          {bv.ten}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1.5 min-h-[36px] flex items-end">
-                    <span>Quốc tịch <span className="text-red-500">*</span></span>
+                  <label className="block font-bold text-gray-700 mb-1.5">
+                    Quốc tịch <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -1500,8 +1590,8 @@ export default function StudentDashboardPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1.5 min-h-[36px] flex items-end">
-                    <span>Dân tộc <span className="text-red-500">*</span></span>
+                  <label className="block font-bold text-gray-700 mb-1.5">
+                    Dân tộc <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -1742,6 +1832,7 @@ export default function StudentDashboardPage() {
 
             <div style={{ marginBottom: '3px' }}>Khu Ký túc xá đăng ký: <strong>{dormReg?.khu_ktx_dang_ky || formData.khu_ktx_dang_ky || 'KTX 3 tầng (Số 10 đường 3/2)'}</strong></div>
             <div style={{ marginBottom: '3px' }}>Bậc ưu tiên xét duyệt KTX: <span style={{ fontStyle: 'italic' }}>{dormReg?.bac_uu_tien || formData.bac_uu_tien}</span></div>
+            <div style={{ marginBottom: '3px' }}>Đăng ký KCB ban đầu BHYT: <strong>{formData.benh_vien_kcb} ({formData.tinh_kcb_ten})</strong></div>
             
             <p style={{ marginTop: '5px', textIndent: '25px', textAlign: 'justify', lineHeight: '1.35', marginBottom: '3px' }}>
               Tôi làm đơn này được đăng ký ở tại Ký túc xá để tiện sinh hoạt và học tập. Tôi xin cam kết ở đúng số phòng - số giường đã được xếp, thực hiện nghiêm túc nội quy Ký túc xá, thanh toán đầy đủ các khoản phí và trả phòng đúng thời gian quy định. Em xin mang theo giấy tờ minh chứng diện ưu tiên bản chính/bản sao công chứng để nộp trực tiếp khi làm thủ tục nhập học.
