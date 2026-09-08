@@ -53,15 +53,19 @@ export default function StudentHomePage() {
   const loadAllDataFromDb = async () => {
     try {
       const [settingsRes, bacRes, roomRes, lichRes] = await Promise.all([
-        supabase.from('system_settings').select('*').eq('is_deleted', false),
+        supabase.from('system_settings').select('*'),
         supabase.from('danh_muc_bac_uu_tien').select('*').order('thu_tu', { ascending: true }),
-        supabase.from('co_so_ktx').select('*').eq('is_deleted', false).order('created_at', { ascending: true }),
+        supabase.from('co_so_ktx').select('*').order('created_at', { ascending: true }),
         supabase.from('lich_nhap_hoc').select('*').order('thu_tu', { ascending: true }),
       ]);
 
-      if (settingsRes.data) {
+      if (settingsRes.data && settingsRes.data.length > 0) {
         const configMap: Record<string, string> = {};
-        settingsRes.data.forEach((s: any) => { configMap[s.key_name] = s.value_data; });
+        settingsRes.data.forEach((s: any) => {
+          if (!s.is_deleted) {
+            configMap[s.key_name] = s.value_data;
+          }
+        });
 
         setSystemConfigs({
           NAM_HOC: configMap['NAM_HOC'] || '2027',
@@ -72,9 +76,14 @@ export default function StudentHomePage() {
         });
       }
 
-      setBacUuTienList(bacRes.data || []);
-      setCoSoKtxList(roomRes.data || []);
-      setLichNhapHocList(lichRes.data || []);
+      // Lọc bỏ các dòng bị xóa mềm (chấp nhận cả giá trị false hoặc null)
+      const validBac = (bacRes.data || []).filter((b: any) => !b.is_deleted);
+      const validRooms = (roomRes.data || []).filter((r: any) => !r.is_deleted);
+      const validLich = (lichRes.data || []).filter((l: any) => !l.is_deleted);
+
+      setBacUuTienList(validBac);
+      setCoSoKtxList(validRooms);
+      setLichNhapHocList(validLich);
     } catch (err) {
       console.error('Lỗi tải dữ liệu trang chủ:', err);
     }
@@ -139,6 +148,7 @@ export default function StudentHomePage() {
   };
 
   const logoUrl = 'https://lh3.googleusercontent.com/d/1EhYcDVJc8jezBSiGS1jJ6XM0EXxjvFKJ';
+  const totalSlots = coSoKtxList.reduce((sum, item) => sum + (Number(item.tong_so_giuong) || 0), 0) || 590;
 
   return (
     <div className="min-h-screen bg-[#09132B] text-white flex flex-col font-sans">
@@ -156,7 +166,6 @@ export default function StudentHomePage() {
               <h1 className="text-xs sm:text-sm font-black text-[#0E1E45] uppercase tracking-tight leading-tight">
                 HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG
               </h1>
-              {/* ĐÃ IN ĐẬM DÒNG PHÂN HIỆU */}
               <h2 className="text-[11px] sm:text-xs font-black text-[#8B0000] uppercase tracking-tight leading-tight mt-0.5">
                 PHÂN HIỆU TẠI THÀNH PHỐ HỒ CHÍ MINH
               </h2>
@@ -182,7 +191,7 @@ export default function StudentHomePage() {
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* CỘT TRÁI: GIỚI THIỆU & FORM ĐĂNG NHẬP NỔI BẬT */}
+          {/* CỘT TRÁI: GIỚI THIỆU & FORM ĐĂNG NHẬP */}
           <div className="lg:col-span-7 space-y-6">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold">
               <span>🎓</span> Khóa tuyển sinh {systemConfigs.NAM_HOC} • Đại học chính quy
@@ -200,14 +209,14 @@ export default function StudentHomePage() {
 
             <div className="flex flex-wrap gap-3 pt-1">
               <div className="px-4 py-2 bg-blue-950/80 border border-blue-800/60 rounded-xl text-xs font-semibold flex items-center gap-2">
-                <span>🛏️</span> Chỉ tiêu KTX: <strong className="text-amber-400">590 chỗ trống</strong>
+                <span>🛏️</span> Chỉ tiêu KTX: <strong className="text-amber-400">{totalSlots} chỗ</strong>
               </div>
               <div className="px-4 py-2 bg-blue-950/80 border border-blue-800/60 rounded-xl text-xs font-semibold flex items-center gap-2">
                 <span>📅</span> Tiếp sinh: <strong className="text-amber-400">{systemConfigs.NGAY_TIEP_SINH}</strong>
               </div>
             </div>
 
-            {/* FORM XÁC THỰC CCCD SINH VIÊN (NỔI BẬT VỚI MÀU SẮC SANG TRỌNG) */}
+            {/* FORM XÁC THỰC CCCD SINH VIÊN */}
             <div className="bg-gradient-to-br from-white via-slate-50 to-blue-50/40 text-gray-900 p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 max-w-xl border-2 border-amber-400/40 ring-4 ring-amber-400/10 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#8B0000] via-amber-500 to-[#0E1E45]"></div>
 
@@ -308,7 +317,7 @@ export default function StudentHomePage() {
                 {bacUuTienList.length > 0 ? (
                   bacUuTienList.map((b, idx) => (
                     <div
-                      key={b.id}
+                      key={b.id || idx}
                       className={`p-3.5 rounded-2xl border transition-all ${
                         idx === 0
                           ? 'bg-gradient-to-r from-red-950/50 via-rose-950/30 to-transparent border-red-500/40 shadow-inner'
@@ -324,7 +333,9 @@ export default function StudentHomePage() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-gray-400 text-center py-2">Đang cập nhật danh mục ưu tiên...</div>
+                  <div className="text-gray-400 text-center py-4 space-y-1">
+                    <p className="animate-pulse">Đang đồng bộ danh mục bậc ưu tiên từ máy chủ...</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -346,13 +357,13 @@ export default function StudentHomePage() {
                 {coSoKtxList.length > 0 ? (
                   coSoKtxList.map((room) => (
                     <div
-                      key={room.id_toa_nha}
+                      key={room.id_toa_nha || room.id}
                       className="p-4 bg-gradient-to-r from-black/60 to-blue-950/40 border border-blue-900/60 rounded-2xl flex justify-between items-center shadow-md hover:border-blue-500/50 transition"
                     >
                       <div className="space-y-0.5">
                         <div className="font-extrabold text-white text-sm">{room.ten_toa_nha}</div>
                         <div className="text-[11px] text-emerald-400 font-medium">
-                          {room.tong_so_giuong} chỗ • <span className="text-gray-300">Còn <strong className="text-amber-300">{room.so_giuong_trong}</strong> chỗ trống</span>
+                          {room.tong_so_giuong} chỗ • <span className="text-gray-300">Còn <strong className="text-amber-300">{room.so_giuong_trong ?? room.tong_so_giuong}</strong> chỗ trống</span>
                         </div>
                       </div>
                       <div className="font-mono font-black text-amber-400 text-xs sm:text-sm bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 shrink-0">
@@ -361,7 +372,9 @@ export default function StudentHomePage() {
                     </div>
                   ))
                 ) : (
-                  <div className="text-gray-400 text-center py-2">Đang cập nhật cơ sở KTX...</div>
+                  <div className="text-gray-400 text-center py-4 space-y-1">
+                    <p className="animate-pulse">Đang đồng bộ cơ sở phòng KTX từ máy chủ...</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -396,7 +409,9 @@ export default function StudentHomePage() {
                   </div>
                 ))
               ) : (
-                <div className="text-gray-400 text-center py-4 md:col-span-3">Đang cập nhật lịch nhập học...</div>
+                <div className="text-gray-400 text-center py-4 md:col-span-3 animate-pulse">
+                  Đang đồng bộ lịch nhập học từ máy chủ...
+                </div>
               )}
             </div>
           </div>
