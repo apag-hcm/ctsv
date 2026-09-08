@@ -1,848 +1,687 @@
-"'use client';
-
-
+'use client';
 
 import React, { useState, useEffect } from 'react';
-
 import { useRouter } from 'next/navigation';
-
-import Link from 'next/link';
-
 import { supabase } from '@/utils/supabase/client';
 
-
-
-export default function StudentHomePage() {
-
+export default function StudentDashboardPage() {
   const router = useRouter();
 
-  const [cccdInput, setCccdInput] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [studentCccd, setStudentCccd] = useState<string>('');
 
-  const [loading, setLoading] = useState(false);
+  // Danh mục CSDL
+  const [danhSachQuocTich, setDanhSachQuocTich] = useState<any[]>([]);
+  const [danhSachDanToc, setDanhSachDanToc] = useState<any[]>([]);
+  const [danhSachBacUuTien, setDanhSachBacUuTien] = useState<any[]>([]);
+  const [danhSachCoSoKtx, setDanhSachCoSoKtx] = useState<any[]>([]);
+  const [danhSachHanBhyt, setDanhSachHanBhyt] = useState<any[]>([]);
+  const [danhSachDoiTuongBhyt, setDanhSachDoiTuongBhyt] = useState<any[]>([]);
+  const [danhSachTinhKcb, setDanhSachTinhKcb] = useState<any[]>([]);
 
-  const [errorMessage, setErrorMessage] = useState('');
+  // Bệnh viện theo Tỉnh
+  const [danhSachBenhVienTheoTinh, setDanhSachBenhVienTheoTinh] = useState<any[]>([]);
+  const [loadingBenhVien, setLoadingBenhVien] = useState(false);
 
+  // Form State sinh viên
+  const [formData, setFormData] = useState({
+    cccd: '',
+    ho_ten: '',
+    ngay_sinh: '',
+    gioi_tinh: 'Nam',
+    quoc_tich: 'Việt Nam',
+    dan_toc: 'Kinh',
+    ngay_cap_cccd: '',
+    noi_cap_cccd: 'Cục Cảnh sát QLHC về trật tự xã hội',
+    sdt_ca_nhan: '',
+    sdt_gia_dinh: '',
+    email_sv: '',
+    ho_khau_thuong_tru: '',
+    nganh_hoc: '',
+    diem_xet_tuyen: 24.5,
 
+    dang_ky_ktx: true,
+    khu_ktx_dang_ky: 'KTX 3 tầng (Số 10 đường 3/2)',
+    bac_uu_tien: 'Bậc 4: Sinh viên tự túc kinh phí',
+    minh_chung_url: '',
 
-  // Dữ liệu tải từ CSDL
-
-  const [systemConfigs, setSystemConfigs] = useState({
-
-    NAM_HOC: '2027',
-
-    TRANG_THAI_CONG: 'AUTO',
-
-    DEADLINE_DANG_KY: '2027-08-30 17:00:00',
-
-    NGAY_TIEP_SINH: '25 - 26/8/2027',
-
-    HOTLINE_KTX: '0905.865.919',
-
+    dang_ky_bhyt: true,
+    ma_the_bhyt: '',
+    han_su_dung_bhyt: 'Tham gia 12 tháng',
+    doi_tuong_bhyt: 'HSSV đóng BHYT tại trường',
+    tinh_kcb: '79', // Mặc định TP. Hồ Chí Minh
+    tinh_kcb_ten: 'Thành phố Hồ Chí Minh',
+    benh_vien_kcb: '',
+    co_tam_tru_hcm: false,
+    dia_chi_tam_tru_vneid: '',
+    da_kham_sk_kh228: 'Đã hoàn thành khám sức khỏe',
   });
 
-
-
-  const [bacUuTienList, setBacUuTienList] = useState<any[]>([]);
-
-  const [coSoKtxList, setCoSoKtxList] = useState<any[]>([]);
-
-  const [lichNhapHocList, setLichNhapHocList] = useState<any[]>([]);
-
-
-
-  // Đếm ngược thời gian
-
-  const [timeLeft, setTimeLeft] = useState({ days: 365, hours: 6, minutes: 27, seconds: 30 });
-
-
-
+  // 1. Lấy tài khoản sinh viên từ màn hình đăng nhập
   useEffect(() => {
-
-    loadAllDataFromDb();
-
-  }, []);
-
-
-
-  useEffect(() => {
-
-    const targetDate = new Date(systemConfigs.DEADLINE_DANG_KY).getTime();
-
-    const timer = setInterval(() => {
-
-      const now = new Date().getTime();
-
-      const distance = targetDate - now;
-
-
-
-      if (distance > 0) {
-
-        setTimeLeft({
-
-          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-
-          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-
-          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-
-          seconds: Math.floor((distance % (1000 * 60)) / 1000),
-
-        });
-
-      }
-
-    }, 1000);
-
-
-
-    return () => clearInterval(timer);
-
-  }, [systemConfigs.DEADLINE_DANG_KY]);
-
-
-
-  const loadAllDataFromDb = async () => {
-
-    try {
-
-      const [settingsRes, bacRes, roomRes, lichRes] = await Promise.all([
-
-        supabase.from('system_settings').select('*').eq('is_deleted', false),
-
-        supabase.from('danh_muc_bac_uu_tien').select('*').order('thu_tu', { ascending: true }),
-
-        supabase.from('co_so_ktx').select('*').eq('is_deleted', false).order('created_at', { ascending: true }),
-
-        supabase.from('lich_nhap_hoc').select('*').order('thu_tu', { ascending: true }),
-
-      ]);
-
-
-
-      if (settingsRes.data) {
-
-        const configMap: Record<string, string> = {};
-
-        settingsRes.data.forEach((s: any) => { configMap[s.key_name] = s.value_data; });
-
-
-
-        setSystemConfigs({
-
-          NAM_HOC: configMap['NAM_HOC'] || '2027',
-
-          TRANG_THAI_CONG: configMap['TRANG_THAI_CONG'] || 'AUTO',
-
-          DEADLINE_DANG_KY: configMap['DEADLINE_DANG_KY'] || '2027-08-30 17:00:00',
-
-          NGAY_TIEP_SINH: configMap['NGAY_TIEP_SINH'] || '25 - 26/8/2027',
-
-          HOTLINE_KTX: configMap['HOTLINE_KTX'] || '0905.865.919',
-
-        });
-
-      }
-
-
-
-      setBacUuTienList(bacRes.data || []);
-
-      setCoSoKtxList(roomRes.data || []);
-
-      setLichNhapHocList(lichRes.data || []);
-
-    } catch (err) {
-
-      console.error('Lỗi tải dữ liệu trang chủ:', err);
-
-    }
-
-  };
-
-
-
-  const handleLoginOrRegister = async (e: React.FormEvent) => {
-
-    e.preventDefault();
-
-    setErrorMessage('');
-
-    const cleanCccd = cccdInput.trim();
-
-
-
-    if (!cleanCccd || cleanCccd.length < 9) {
-
-      setErrorMessage('Vui lòng nhập số CCCD hoặc Số định danh hợp lệ!');
-
+    const storedCccd = localStorage.getItem('student_cccd');
+    if (!storedCccd) {
+      router.push('/');
       return;
-
     }
+    setStudentCccd(storedCccd);
+    loadInitialData(storedCccd);
+  }, [router]);
 
-
-
+  // 2. Tải toàn bộ danh mục và dữ liệu hồ sơ
+  const loadInitialData = async (cccd: string) => {
     try {
-
       setLoading(true);
 
+      const [
+        studentRes, ktxRes, bhytRes, bacRes, ktxRoomsRes,
+        hanBhytRes, dtBhytRes, danTocRes, quocTichRes, diaChiRes
+      ] = await Promise.all([
+        supabase.from('sinh_vien').select('*').eq('cccd', cccd).maybeSingle(),
+        supabase.from('dang_ky_ktx').select('*').eq('cccd', cccd).maybeSingle(),
+        supabase.from('dang_ky_bhyt').select('*').eq('cccd', cccd).maybeSingle(),
+        supabase.from('danh_muc_bac_uu_tien').select('*').order('thu_tu', { ascending: true }),
+        supabase.from('co_so_ktx').select('*').order('created_at', { ascending: true }),
+        supabase.from('danh_muc_han_bhyt').select('*').order('thu_tu', { ascending: true }),
+        supabase.from('danh_muc_doi_tuong_bhyt').select('*').order('thu_tu', { ascending: true }),
+        supabase.from('danh_muc_dan_toc').select('*').order('thu_tu', { ascending: true }),
+        supabase.from('danh_muc_quoc_gia').select('*').order('thu_tu', { ascending: true }),
+        supabase.from('danh_muc_dia_chi').select('ma_tinh, ten_tinh').order('ten_tinh', { ascending: true }),
+      ]);
 
+      setDanhSachBacUuTien((bacRes.data || []).filter((b: any) => !b.is_deleted));
+      setDanhSachCoSoKtx((ktxRoomsRes.data || []).filter((r: any) => !r.is_deleted));
+      setDanhSachHanBhyt((hanBhytRes.data || []).filter((h: any) => !h.is_deleted));
+      setDanhSachDoiTuongBhyt((dtBhytRes.data || []).filter((d: any) => !d.is_deleted));
+      setDanhSachDanToc(danTocRes.data || []);
+      setDanhSachQuocTich(quocTichRes.data || []);
 
-      const { data: student, error } = await supabase
-
-        .from('sinh_vien')
-
-        .select('*')
-
-        .eq('cccd', cleanCccd)
-
-        .eq('is_deleted', false)
-
-        .maybeSingle();
-
-
-
-      if (error) throw error;
-
-
-
-      if (student) {
-
-        localStorage.setItem('student_cccd', student.cccd);
-
-        localStorage.setItem('student_data', JSON.stringify(student));
-
-        router.push('/dashboard');
-
-      } else {
-
-        const newStudent = {
-
-          cccd: cleanCccd,
-
-          ho_ten: `TÂN SINH VIÊN (${cleanCccd.slice(-4)})`,
-
-          ngay_sinh: '2008-01-01',
-
-          gioi_tinh: 'Nam',
-
-          ngay_cap_cccd: '2024-01-01',
-
-          noi_cap_cccd: 'Cục Cảnh sát quản lý hành chính về trật tự xã hội',
-
-          sdt_ca_nhan: '0900000000',
-
-          sdt_gia_dinh: '0910000000',
-
-          email_sv: 'sinhvien@gmail.com',
-
-          nganh_hoc: 'Quản lý nhà nước',
-
-          diem_xet_tuyen: 24.5,
-
-          ho_khau_thuong_tru: 'Thành phố Hồ Chí Minh',
-
-          trang_thai_ho_so: 'CHUA_HOAN_THIEN',
-
-          is_deleted: false,
-
-        };
-
-
-
-        const { error: insertErr } = await supabase.from('sinh_vien').insert([newStudent]);
-
-        if (insertErr) throw insertErr;
-
-
-
-        localStorage.setItem('student_cccd', cleanCccd);
-
-        localStorage.setItem('student_data', JSON.stringify(newStudent));
-
-        router.push('/dashboard');
-
+      if (diaChiRes.data && diaChiRes.data.length > 0) {
+        const mapTinh = new Map();
+        diaChiRes.data.forEach((item: any) => {
+          if (!mapTinh.has(item.ma_tinh)) {
+            mapTinh.set(item.ma_tinh, { id: String(item.ma_tinh), ten: item.ten_tinh });
+          }
+        });
+        setDanhSachTinhKcb(Array.from(mapTinh.values()));
       }
 
-    } catch (err: any) {
+      const s = studentRes.data || {};
+      const k = ktxRes.data || {};
+      const b = bhytRes.data || {};
 
-      setErrorMessage('Lỗi hệ thống: ' + (err.message || 'Không thể kết nối CSDL'));
+      setFormData((prev) => ({
+        ...prev,
+        cccd: cccd,
+        ho_ten: s.ho_ten || prev.ho_ten,
+        ngay_sinh: s.ngay_sinh ? s.ngay_sinh.split('T')[0] : prev.ngay_sinh,
+        gioi_tinh: s.gioi_tinh || prev.gioi_tinh,
+        quoc_tich: s.quoc_tich || b.quoc_tich || 'Việt Nam',
+        dan_toc: s.dan_toc || b.dan_toc || 'Kinh',
+        ngay_cap_cccd: s.ngay_cap_cccd ? s.ngay_cap_cccd.split('T')[0] : prev.ngay_cap_cccd,
+        noi_cap_cccd: s.noi_cap_cccd || prev.noi_cap_cccd,
+        sdt_ca_nhan: s.sdt_ca_nhan || prev.sdt_ca_nhan,
+        sdt_gia_dinh: s.sdt_gia_dinh || prev.sdt_gia_dinh,
+        email_sv: s.email_sv || prev.email_sv,
+        ho_khau_thuong_tru: s.ho_khau_thuong_tru || prev.ho_khau_thuong_tru,
+        nganh_hoc: s.nganh_hoc || prev.nganh_hoc,
+        diem_xet_tuyen: s.diem_xet_tuyen ?? prev.diem_xet_tuyen,
 
+        dang_ky_ktx: !!k.ma_ho_so,
+        khu_ktx_dang_ky: k.khu_ktx_dang_ky || prev.khu_ktx_dang_ky,
+        bac_uu_tien: k.bac_uu_tien || prev.bac_uu_tien,
+        minh_chung_url: k.minh_chung_url || '',
+
+        dang_ky_bhyt: !!b.id || true,
+        ma_the_bhyt: b.ma_the_bhyt || '',
+        han_su_dung_bhyt: b.han_su_dung_bhyt || prev.han_su_dung_bhyt,
+        doi_tuong_bhyt: b.doi_tuong_bhyt || prev.doi_tuong_bhyt,
+        tinh_kcb: b.tinh_kcb || '79',
+        tinh_kcb_ten: b.tinh_kcb_ten || 'Thành phố Hồ Chí Minh',
+        benh_vien_kcb: b.benh_vien_kcb || '',
+        co_tam_tru_hcm: b.co_tam_tru_hcm || false,
+        dia_chi_tam_tru_vneid: b.dia_chi_tam_tru_vneid || '',
+        da_kham_sk_kh228: b.da_kham_sk_kh228 || prev.da_kham_sk_kh228,
+      }));
+    } catch (err) {
+      console.error('Lỗi khởi tạo hồ sơ:', err);
     } finally {
-
       setLoading(false);
-
     }
-
   };
 
+  // 3. Truy vấn động Bệnh viện theo Tỉnh
+  useEffect(() => {
+    if (!formData.tinh_kcb) {
+      setDanhSachBenhVienTheoTinh([]);
+      return;
+    }
 
+    const fetchBenhVien = async () => {
+      try {
+        setLoadingBenhVien(true);
+        const rawId = String(formData.tinh_kcb).trim();
+        const numId = String(parseInt(rawId, 10));
+        const padId = rawId.padStart(2, '0');
 
-  const logoUrl = 'https://lh3.googleusercontent.com/d/1EhYcDVJc8jezBSiGS1jJ6XM0EXxjvFKJ';
+        const { data, error } = await supabase
+          .from('danh_muc_cskcb')
+          .select('ma_benh_vien, ten_benh_vien, ma_tinh')
+          .or(`ma_tinh.eq.${rawId},ma_tinh.eq.${numId},ma_tinh.eq.${padId}`)
+          .order('ten_benh_vien', { ascending: true });
 
+        if (error) throw error;
+        setDanhSachBenhVienTheoTinh(data || []);
+      } catch (err) {
+        console.error('Lỗi nạp bệnh viện:', err);
+        setDanhSachBenhVienTheoTinh([]);
+      } finally {
+        setLoadingBenhVien(false);
+      }
+    };
 
+    fetchBenhVien();
+  }, [formData.tinh_kcb]);
+
+  // 4. Lưu hồ sơ
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSubmitting(true);
+
+      const { error: stuErr } = await supabase
+        .from('sinh_vien')
+        .upsert({
+          cccd: formData.cccd,
+          ho_ten: formData.ho_ten,
+          ngay_sinh: formData.ngay_sinh,
+          gioi_tinh: formData.gioi_tinh,
+          quoc_tich: formData.quoc_tich,
+          dan_toc: formData.dan_toc,
+          ngay_cap_cccd: formData.ngay_cap_cccd,
+          noi_cap_cccd: formData.noi_cap_cccd,
+          sdt_ca_nhan: formData.sdt_ca_nhan,
+          sdt_gia_dinh: formData.sdt_gia_dinh,
+          email_sv: formData.email_sv,
+          ho_khau_thuong_tru: formData.ho_khau_thuong_tru,
+          nganh_hoc: formData.nganh_hoc,
+          diem_xet_tuyen: formData.diem_xet_tuyen,
+          trang_thai_ho_so: 'HOAN_THANH',
+          is_deleted: false,
+        }, { onConflict: 'cccd' });
+
+      if (stuErr) throw stuErr;
+
+      if (formData.dang_ky_ktx) {
+        const maHoSoKtx = `KTX26-${formData.cccd.slice(-6)}`;
+        await supabase
+          .from('dang_ky_ktx')
+          .upsert({
+            ma_ho_so: maHoSoKtx,
+            cccd: formData.cccd,
+            khu_ktx_dang_ky: formData.khu_ktx_dang_ky,
+            bac_uu_tien: formData.bac_uu_tien,
+            minh_chung_url: formData.minh_chung_url,
+            trang_thai_duyet: 'CHO_DUYET',
+            is_deleted: false,
+          }, { onConflict: 'cccd' });
+      }
+
+      if (formData.dang_ky_bhyt) {
+        await supabase
+          .from('dang_ky_bhyt')
+          .upsert({
+            cccd: formData.cccd,
+            ma_the_bhyt: formData.ma_the_bhyt,
+            han_su_dung_bhyt: formData.han_su_dung_bhyt,
+            doi_tuong_bhyt: formData.doi_tuong_bhyt,
+            tinh_kcb: formData.tinh_kcb,
+            tinh_kcb_ten: formData.tinh_kcb_ten,
+            benh_vien_kcb: formData.benh_vien_kcb,
+            co_tam_tru_hcm: formData.co_tam_tru_hcm,
+            dia_chi_tam_tru_vneid: formData.dia_chi_tam_tru_vneid,
+            da_kham_sk_kh228: formData.da_kham_sk_kh228,
+            quoc_tich: formData.quoc_tich,
+            dan_toc: formData.dan_toc,
+            is_deleted: false,
+          }, { onConflict: 'cccd' });
+      }
+
+      alert('🎉 Chúc mừng bạn đã hoàn thiện hồ sơ Tân sinh viên thành công!');
+    } catch (err: any) {
+      alert('Lỗi lưu hồ sơ: ' + (err.message || err));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('student_cccd');
+    localStorage.removeItem('student_data');
+    router.push('/');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0E1E45] flex items-center justify-center p-4">
+        <div className="text-white text-center space-y-3 font-sans">
+          <div className="w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-xs font-bold uppercase tracking-wider">Đang tải hồ sơ tân sinh viên...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-
-    <div className="min-h-screen bg-[#09132B] text-white flex flex-col font-sans">
-
-      
-
-      {/* 1. HEADER CHUẨN THƯƠNG HIỆU */}
-
-      <header className="bg-white border-b border-gray-200 py-3 px-4 sm:px-8 shadow-sm">
-
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
-
-          <div className="flex items-center gap-3.5">
-
-            <img
-
-              src={logoUrl}
-
-              alt="Logo APAG"
-
-              className="h-11 w-auto object-contain shrink-0"
-
-            />
-
-            <div className="border-l border-gray-300 pl-3.5">
-
-              <h1 className="text-xs sm:text-sm font-black text-[#0E1E45] uppercase tracking-tight leading-tight">
-
-                HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG
-
-              </h1>
-
-              {/* ĐÃ IN ĐẬM DÒNG PHÂN HIỆU */}
-
-              <h2 className="text-[11px] sm:text-xs font-black text-[#8B0000] uppercase tracking-tight leading-tight mt-0.5">
-
-                PHÂN HIỆU TẠI THÀNH PHỐ HỒ CHÍ MINH
-
-              </h2>
-
-              <div className="text-[10px] sm:text-[11px] font-extrabold text-[#D97706] uppercase tracking-wider mt-0.5">
-
-                CỔNG THÔNG TIN TÂN SINH VIÊN ĐẠI HỌC CHÍNH QUY NĂM {systemConfigs.NAM_HOC}
-
-              </div>
-
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6 lg:p-8 text-gray-900 font-sans">
+      <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-200">
+        
+        {/* HEADER DASHBOARD */}
+        <div className="bg-gradient-to-r from-[#0E1E45] via-[#162758] to-[#0E1E45] text-white p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-1">
+            <div className="inline-block px-2.5 py-0.5 rounded-full bg-amber-400 text-[#0E1E45] text-[10px] font-black uppercase tracking-wider">
+              Bảng Điều Khiển Sinh Viên
             </div>
-
+            <h1 className="text-base sm:text-xl font-black tracking-tight uppercase">
+              HỒ SƠ NHẬP HỌC & ĐĂNG KÝ BHYT / KTX
+            </h1>
+            <p className="text-xs text-gray-300 font-mono">
+              Xin chào: <strong className="text-white uppercase">{formData.ho_ten}</strong> • CCCD: <span className="text-amber-300">{studentCccd}</span>
+            </p>
           </div>
-
-
 
           <div className="flex items-center gap-2">
-
-            <Link
-
-              href="/admin"
-
-              className="px-4 py-2 bg-[#0E1E45] hover:bg-blue-900 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm"
-
+            <button
+              onClick={() => window.print()}
+              type="button"
+              className="px-3.5 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-xs font-bold text-white transition flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
-
-              <span>🛡️</span> Cổng Quản trị / Duyệt đơn
-
-            </Link>
-
+              <span>🖨️</span> In hồ sơ
+            </button>
+            <button
+              onClick={handleLogout}
+              type="button"
+              className="px-3.5 py-2 bg-red-600 hover:bg-red-700 rounded-xl text-xs font-bold text-white transition flex items-center gap-1 cursor-pointer shadow-sm"
+            >
+              <span>Thoát</span> ✕
+            </button>
           </div>
-
         </div>
 
-      </header>
-
-
-
-      {/* 2. MAIN HERO SECTION */}
-
-      <main className="max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8 flex-1">
-
-        
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
+        {/* NỘI DUNG BIỂU MẪU */}
+        <form onSubmit={handleSubmit} className="p-5 sm:p-8 space-y-8 text-xs">
           
-
-          {/* CỘT TRÁI: GIỚI THIỆU & FORM ĐĂNG NHẬP NỔI BẬT */}
-
-          <div className="lg:col-span-7 space-y-6">
-
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold">
-
-              <span>🎓</span> Khóa tuyển sinh {systemConfigs.NAM_HOC} • Đại học chính quy
-
+          {/* MỤC 1: THÔNG TIN CÁ NHÂN */}
+          <div className="space-y-4">
+            <div className="font-extrabold text-sm uppercase tracking-wider text-[#0E1E45] border-b pb-2 flex items-center gap-2">
+              <span>👤</span> 1. THÔNG TIN ĐỊNH DANH CÁ NHÂN
             </div>
 
-
-
-            <div className="space-y-3">
-
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
-
-                Đăng ký xét duyệt <br />
-
-                <span className="text-amber-400">Ký túc xá</span> trực tuyến
-
-              </h1>
-
-              <p className="text-gray-300 text-xs sm:text-sm leading-relaxed max-w-xl">
-
-                Học viện hỗ trợ không gian lưu trú an toàn, tiện nghi, chi phí ưu đãi cho tân sinh viên trúng tuyển tại các cơ sở Ký túc xá thuộc Phân hiệu TP. Hồ Chí Minh.
-
-              </p>
-
-            </div>
-
-
-
-            <div className="flex flex-wrap gap-3 pt-1">
-
-              <div className="px-4 py-2 bg-blue-950/80 border border-blue-800/60 rounded-xl text-xs font-semibold flex items-center gap-2">
-
-                <span>🛏️</span> Chỉ tiêu KTX: <strong className="text-amber-400">590 chỗ trống</strong>
-
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Số CCCD / Số ĐDCN (*):</label>
+                <input
+                  type="text"
+                  value={formData.cccd}
+                  disabled
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-100 font-mono font-bold text-gray-600"
+                />
               </div>
-
-              <div className="px-4 py-2 bg-blue-950/80 border border-blue-800/60 rounded-xl text-xs font-semibold flex items-center gap-2">
-
-                <span>📅</span> Tiếp sinh: <strong className="text-amber-400">{systemConfigs.NGAY_TIEP_SINH}</strong>
-
-              </div>
-
-            </div>
-
-
-
-            {/* FORM XÁC THỰC CCCD SINH VIÊN (NỔI BẬT VỚI MÀU SẮC SANG TRỌNG) */}
-
-            <div className="bg-gradient-to-br from-white via-slate-50 to-blue-50/40 text-gray-900 p-6 sm:p-8 rounded-3xl shadow-2xl space-y-4 max-w-xl border-2 border-amber-400/40 ring-4 ring-amber-400/10 relative overflow-hidden">
-
-              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#8B0000] via-amber-500 to-[#0E1E45]"></div>
-
-
 
               <div>
-
-                <div className="inline-block px-2.5 py-0.5 rounded-full bg-red-100 text-[#8B0000] text-[10px] font-extrabold uppercase tracking-wider mb-1.5">
-
-                  Cổng trực tuyến 24/7
-
-                </div>
-
-                <h3 className="text-base sm:text-xl font-black text-[#0E1E45]">
-
-                  Đăng Nhập / Hoàn Thiện Hồ Sơ Thí Sinh
-
-                </h3>
-
-                <p className="text-xs text-gray-600 mt-0.5 font-medium">
-
-                  Nhập số Căn cước công dân hoặc Số định danh cá nhân (Số ĐDCN) đã đăng ký xét tuyển
-
-                </p>
-
+                <label className="block font-bold text-gray-700 mb-1">Họ và Tên (*):</label>
+                <input
+                  type="text"
+                  value={formData.ho_ten}
+                  onChange={(e) => setFormData({ ...formData, ho_ten: e.target.value })}
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-bold text-gray-900 uppercase"
+                />
               </div>
 
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Ngày sinh (*):</label>
+                <input
+                  type="date"
+                  value={formData.ngay_sinh}
+                  onChange={(e) => setFormData({ ...formData, ngay_sinh: e.target.value })}
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-semibold text-gray-900"
+                />
+              </div>
 
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Giới tính (*):</label>
+                <select
+                  value={formData.gioi_tinh}
+                  onChange={(e) => setFormData({ ...formData, gioi_tinh: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-semibold text-gray-900"
+                >
+                  <option value="Nam">Nam</option>
+                  <option value="Nữ">Nữ</option>
+                </select>
+              </div>
 
-              <form onSubmit={handleLoginOrRegister} className="space-y-3.5">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Quốc tịch (*):</label>
+                <select
+                  value={formData.quoc_tich}
+                  onChange={(e) => setFormData({ ...formData, quoc_tich: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-semibold text-gray-900"
+                >
+                  {danhSachQuocTich.map((q: any) => (
+                    <option key={q.id || q.ten_quoc_gia} value={q.ten_quoc_gia}>
+                      {q.ten_quoc_gia}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Dân tộc (*):</label>
+                <select
+                  value={formData.dan_toc}
+                  onChange={(e) => setFormData({ ...formData, dan_toc: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-semibold text-gray-900"
+                >
+                  {danhSachDanToc.map((d: any) => (
+                    <option key={d.id || d.ten_dan_toc} value={d.ten_dan_toc}>
+                      {d.ten_dan_toc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Số điện thoại cá nhân (*):</label>
+                <input
+                  type="text"
+                  value={formData.sdt_ca_nhan}
+                  onChange={(e) => setFormData({ ...formData, sdt_ca_nhan: e.target.value })}
+                  placeholder="090..."
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-semibold text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Số điện thoại gia đình (*):</label>
+                <input
+                  type="text"
+                  value={formData.sdt_gia_dinh}
+                  onChange={(e) => setFormData({ ...formData, sdt_gia_dinh: e.target.value })}
+                  placeholder="091..."
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-semibold text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Email sinh viên (*):</label>
+                <input
+                  type="email"
+                  value={formData.email_sv}
+                  onChange={(e) => setFormData({ ...formData, email_sv: e.target.value })}
+                  placeholder="sinhvien@gmail.com"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-semibold text-gray-900"
+                />
+              </div>
+
+              <div className="sm:col-span-2 md:col-span-3">
+                <label className="block font-bold text-gray-700 mb-1">Hộ khẩu thường trú (*):</label>
+                <input
+                  type="text"
+                  value={formData.ho_khau_thuong_tru}
+                  onChange={(e) => setFormData({ ...formData, ho_khau_thuong_tru: e.target.value })}
+                  placeholder="Số nhà, đường, xã/phường, quận/huyện, tỉnh/thành phố..."
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-semibold text-gray-900"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* MỤC 2: KHỐI BẢO HIỂM Y TẾ (BHYT) & ĐĂNG KÝ BỆNH VIỆN KCB BAN ĐẦU */}
+          <div className="space-y-4">
+            <div className="font-extrabold text-sm uppercase tracking-wider text-[#0E1E45] border-b pb-2 flex items-center gap-2">
+              <span>🏥</span> 2. KÊ KHAI BẢO HIỂM Y TẾ (BHYT) & NƠI KHÁM CHỮA BỆNH BAN ĐẦU
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Mã số thẻ BHYT (nếu có):</label>
+                <input
+                  type="text"
+                  value={formData.ma_the_bhyt}
+                  onChange={(e) => setFormData({ ...formData, ma_the_bhyt: e.target.value })}
+                  placeholder="10 hoặc 15 ký tự số..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-mono font-semibold text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Thời hạn thẻ BHYT (*):</label>
+                <select
+                  value={formData.han_su_dung_bhyt}
+                  onChange={(e) => setFormData({ ...formData, han_su_dung_bhyt: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-semibold text-gray-900"
+                >
+                  {danhSachHanBhyt.map((h: any) => (
+                    <option key={h.id} value={h.ten_han}>
+                      {h.ten_han}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Đối tượng tham gia BHYT (*):</label>
+                <select
+                  value={formData.doi_tuong_bhyt}
+                  onChange={(e) => setFormData({ ...formData, doi_tuong_bhyt: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] font-semibold text-gray-900"
+                >
+                  {danhSachDoiTuongBhyt.map((d: any) => (
+                    <option key={d.id} value={d.ten_doi_tuong}>
+                      {d.ten_doi_tuong}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* KHỐI ĐĂNG KÝ NƠI KCB BAN ĐẦU - TRUY VẤN ĐỘNG TỪ BẢNG danh_muc_cskcb */}
+            <div className="p-4 sm:p-5 bg-blue-50/50 rounded-2xl border border-blue-200 space-y-4">
+              <div className="font-extrabold text-xs uppercase tracking-wider text-[#0E1E45] flex items-center gap-1.5">
+                <span>📍</span> NƠI ĐĂNG KÝ KHÁM CHỮA BỆNH BAN ĐẦU (THEO CSDL BẢO HIỂM XÃ HỘI) <span className="text-red-500">*</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. TỈNH / THÀNH PHỐ */}
                 <div>
-
-                  <label className="block text-xs font-bold text-gray-800 mb-1.5 flex items-center gap-1">
-
-                    <span>💳</span> Số CCCD / Số ĐDCN (*):
-
+                  <label className="block font-bold text-gray-800 mb-1.5">
+                    Tỉnh / Thành phố KCB (*):
                   </label>
+                  <select
+                    value={formData.tinh_kcb}
+                    onChange={(e) => {
+                      const selectedVal = e.target.value;
+                      const found = danhSachTinhKcb.find((t: any) => String(t.id) === selectedVal);
+                      setFormData({
+                        ...formData,
+                        tinh_kcb: selectedVal,
+                        tinh_kcb_ten: found ? found.ten : '',
+                        benh_vien_kcb: '', // Reset bệnh viện khi chuyển tỉnh
+                      });
+                    }}
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] bg-white font-bold text-xs text-gray-900 cursor-pointer shadow-sm"
+                  >
+                    <option value="">-- Chọn Tỉnh / Thành phố --</option>
+                    {danhSachTinhKcb.map((t: any) => (
+                      <option key={t.id} value={t.id}>
+                        {t.ten.includes(t.id) ? t.ten : `${t.id} - ${t.ten}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 2. BỆNH VIỆN NHẬN KCB BAN ĐẦU */}
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className="font-bold text-gray-800">
+                      Bệnh viện nhận KCB ban đầu (*):
+                    </label>
+                    {loadingBenhVien && (
+                      <span className="text-[11px] font-bold text-blue-600 animate-pulse">
+                        Đang nạp bệnh viện từ CSDL...
+                      </span>
+                    )}
+                  </div>
 
                   <input
-
                     type="text"
-
-                    value={cccdInput}
-
-                    onChange={(e) => setCccdInput(e.target.value)}
-
-                    placeholder="Nhập đúng 12 số CCCD..."
-
+                    list="danhSachKcbDatalist"
+                    value={formData.benh_vien_kcb}
+                    disabled={!formData.tinh_kcb || loadingBenhVien}
+                    onChange={(e) => setFormData({ ...formData, benh_vien_kcb: e.target.value })}
+                    placeholder={
+                      !formData.tinh_kcb
+                        ? 'Vui lòng chọn Tỉnh/Thành phố trước'
+                        : loadingBenhVien
+                        ? 'Đang tải danh sách cơ sở y tế...'
+                        : 'Gõ hoặc chọn tên bệnh viện KCB...'
+                    }
                     required
-
-                    className="w-full px-4 py-3.5 rounded-xl border-2 border-gray-300 focus:border-[#0E1E45] focus:ring-4 focus:ring-[#0E1E45]/10 focus:outline-none text-xs sm:text-sm font-mono font-bold text-gray-900 bg-white shadow-inner transition"
-
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#0E1E45] bg-white font-bold text-xs text-gray-900 disabled:bg-gray-100 shadow-sm"
                   />
 
-                  <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1">
+                  {/* DANH SÁCH GỢI Ý TỰ ĐỘNG THEO TỈNH */}
+                  <datalist id="danhSachKcbDatalist">
+                    {danhSachBenhVienTheoTinh.map((bv) => (
+                      <option key={bv.ma_benh_vien} value={`${bv.ma_benh_vien} - ${bv.ten_benh_vien}`}>
+                        {bv.ten_benh_vien}
+                      </option>
+                    ))}
+                  </datalist>
 
-                    <span>💡</span> Nhập số CCCD để hệ thống tự động nhận diện thông tin trúng tuyển của bạn.
-
+                  <p className="text-[11px] text-gray-500 mt-1.5">
+                    {formData.tinh_kcb ? (
+                      <>
+                        Hệ thống đã nạp <strong className="text-blue-900 font-bold">{danhSachBenhVienTheoTinh.length}</strong> cơ sở y tế đủ điều kiện. Bạn có thể nhấn mũi tên hoặc gõ tên bệnh viện để tìm nhanh.
+                      </>
+                    ) : (
+                      'Chọn Tỉnh/Thành phố để mở khóa danh mục bệnh viện tương ứng.'
+                    )}
                   </p>
-
                 </div>
-
-
-
-                {errorMessage && (
-
-                  <div className="p-3.5 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-bold flex items-center gap-2">
-
-                    <span>⚠️</span> {errorMessage}
-
-                  </div>
-
-                )}
-
-
-
-                <div className="pt-2 flex justify-end">
-
-                  <button
-
-                    type="submit"
-
-                    disabled={loading}
-
-                    className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#8B0000] to-red-800 hover:from-red-900 hover:to-red-950 text-white font-extrabold rounded-xl text-xs sm:text-sm shadow-xl hover:shadow-red-900/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2 tracking-wide"
-
-                  >
-
-                    <span>{loading ? 'Đang xác thực...' : 'Hoàn thiện Hồ sơ Tân Sinh viên'}</span>
-
-                    <span>→</span>
-
-                  </button>
-
-                </div>
-
-              </form>
-
+              </div>
             </div>
 
-          </div>
-
-
-
-          {/* CỘT PHẢI: ĐẾM NGƯỢC, BẬC ƯU TIÊN & ĐỊNH MỨC KINH PHÍ */}
-
-          <div className="lg:col-span-5 space-y-6">
-
-            
-
-            {/* ĐẾM NGƯỢC */}
-
-            <div className="bg-[#091430] border border-blue-900/60 p-5 rounded-2xl shadow-xl space-y-3">
-
-              <div className="flex justify-between items-center text-xs font-bold text-amber-300">
-
-                <span>⏳ HẠN CHÓT NHẬN ĐƠN TRỰC TUYẾN</span>
-
-                <span className="font-mono">{systemConfigs.DEADLINE_DANG_KY}</span>
-
+            {/* ĐỊA CHỈ TẠM TRÚ VNeID */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="tamTruCheck"
+                  checked={formData.co_tam_tru_hcm}
+                  onChange={(e) => setFormData({ ...formData, co_tam_tru_hcm: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                <label htmlFor="tamTruCheck" className="font-bold text-gray-800 cursor-pointer">
+                  Đã có đăng ký tạm trú tại TP. Hồ Chí Minh trên VNeID
+                </label>
               </div>
 
-
-
-              <div className="grid grid-cols-4 gap-2 text-center">
-
-                <div className="bg-[#050C1F] p-3 rounded-xl border border-blue-900/40">
-
-                  <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">{timeLeft.days}</div>
-
-                  <div className="text-[10px] uppercase text-gray-400 font-bold mt-0.5">Ngày</div>
-
+              {formData.co_tam_tru_hcm && (
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Địa chỉ tạm trú trên VNeID:</label>
+                  <input
+                    type="text"
+                    value={formData.dia_chi_tam_tru_vneid}
+                    onChange={(e) => setFormData({ ...formData, dia_chi_tam_tru_vneid: e.target.value })}
+                    placeholder="Địa chỉ ghi nhận trên ứng dụng VNeID..."
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 font-semibold"
+                  />
                 </div>
-
-                <div className="bg-[#050C1F] p-3 rounded-xl border border-blue-900/40">
-
-                  <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">{timeLeft.hours}</div>
-
-                  <div className="text-[10px] uppercase text-gray-400 font-bold mt-0.5">Giờ</div>
-
-                </div>
-
-                <div className="bg-[#050C1F] p-3 rounded-xl border border-blue-900/40">
-
-                  <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">{timeLeft.minutes}</div>
-
-                  <div className="text-[10px] uppercase text-gray-400 font-bold mt-0.5">Phút</div>
-
-                </div>
-
-                <div className="bg-[#050C1F] p-3 rounded-xl border border-blue-900/40">
-
-                  <div className="text-xl sm:text-2xl font-black text-amber-400 font-mono">{timeLeft.seconds}</div>
-
-                  <div className="text-[10px] uppercase text-gray-400 font-bold mt-0.5">Giây</div>
-
-                </div>
-
-              </div>
-
-            </div>
-
-
-
-            {/* BẬC ƯU TIÊN NẠP TỪ CSDL */}
-
-            <div className="bg-gradient-to-br from-[#0e1c3f] via-[#0b1632] to-[#121c38] border border-blue-400/30 p-6 rounded-3xl shadow-2xl space-y-4 text-xs relative overflow-hidden ring-1 ring-white/10">
-
-              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none"></div>
-
-
-
-              <div className="flex justify-between items-center font-bold">
-
-                <span className="text-amber-300 tracking-wide flex items-center gap-1.5 text-sm">
-
-                  <span>💎</span> BẬC ƯU TIÊN XÉT DUYỆT KTX {systemConfigs.NAM_HOC}
-
-                </span>
-
-                <span className="px-3 py-1 rounded-full bg-purple-500/20 border border-purple-400/30 text-purple-200 text-[10px] font-bold tracking-wider">
-
-                  Tiêu chuẩn
-
-                </span>
-
-              </div>
-
-
-
-              <div className="space-y-2.5 font-medium">
-
-                {bacUuTienList.length > 0 ? (
-
-                  bacUuTienList.map((b, idx) => (
-
-                    <div
-
-                      key={b.id}
-
-                      className={`p-3.5 rounded-2xl border transition-all ${
-
-                        idx === 0
-
-                          ? 'bg-gradient-to-r from-red-950/50 via-rose-950/30 to-transparent border-red-500/40 shadow-inner'
-
-                          : idx === 1
-
-                          ? 'bg-gradient-to-r from-blue-950/50 via-indigo-950/30 to-transparent border-blue-500/30'
-
-                          : 'bg-black/30 border-blue-900/40 hover:border-blue-700/60'
-
-                      }`}
-
-                    >
-
-                      <div className={`font-bold text-sm mb-0.5 ${idx === 0 ? 'text-rose-300' : idx === 1 ? 'text-blue-300' : 'text-slate-200'}`}>
-
-                        {b.ten_bac}
-
-                      </div>
-
-                      <p className="text-[11px] text-gray-300 leading-relaxed">{b.mo_ta_tieu_chi}</p>
-
-                    </div>
-
-                  ))
-
-                ) : (
-
-                  <div className="text-gray-400 text-center py-2">Đang cập nhật danh mục ưu tiên...</div>
-
-                )}
-
-              </div>
-
-            </div>
-
-
-
-            {/* ĐỊNH MỨC KINH PHÍ KTX NẠP TỪ CSDL */}
-
-            <div className="bg-gradient-to-br from-[#0c1a36] via-[#09132b] to-[#0f213f] border border-blue-400/30 p-6 rounded-3xl shadow-2xl space-y-4 text-xs relative overflow-hidden ring-1 ring-white/10">
-
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none"></div>
-
-
-
-              <div className="flex justify-between items-center font-bold">
-
-                <span className="text-amber-300 tracking-wide flex items-center gap-1.5 text-sm">
-
-                  <span>💰</span> ĐỊNH MỨC KINH PHÍ KÝ TÚC XÁ {systemConfigs.NAM_HOC}
-
-                </span>
-
-                <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-[10px] font-bold tracking-wider">
-
-                  Ưu đãi
-
-                </span>
-
-              </div>
-
-
-
-              <div className="space-y-3">
-
-                {coSoKtxList.length > 0 ? (
-
-                  coSoKtxList.map((room) => (
-
-                    <div
-
-                      key={room.id_toa_nha}
-
-                      className="p-4 bg-gradient-to-r from-black/60 to-blue-950/40 border border-blue-900/60 rounded-2xl flex justify-between items-center shadow-md hover:border-blue-500/50 transition"
-
-                    >
-
-                      <div className="space-y-0.5">
-
-                        <div className="font-extrabold text-white text-sm">{room.ten_toa_nha}</div>
-
-                        <div className="text-[11px] text-emerald-400 font-medium">
-
-                          {room.tong_so_giuong} chỗ • <span className="text-gray-300">Còn <strong className="text-amber-300">{room.so_giuong_trong}</strong> chỗ trống</span>
-
-                        </div>
-
-                      </div>
-
-                      <div className="font-mono font-black text-amber-400 text-xs sm:text-sm bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-500/20 shrink-0">
-
-                        {room.loai_phong}
-
-                      </div>
-
-                    </div>
-
-                  ))
-
-                ) : (
-
-                  <div className="text-gray-400 text-center py-2">Đang cập nhật cơ sở KTX...</div>
-
-                )}
-
-              </div>
-
-            </div>
-
-
-
-          </div>
-
-
-
-        </div>
-
-
-
-        {/* LƯU Ý VÀ LỊCH NHẬP HỌC TRỰC TIẾP */}
-
-        <div className="space-y-6 pt-4">
-
-          <div className="p-4 sm:p-5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 flex items-start gap-3 shadow-sm">
-
-            <span className="text-xl">⚠️</span>
-
-            <div className="space-y-1 text-xs sm:text-sm">
-
-              <div className="font-bold uppercase tracking-wide">LƯU Ý QUAN TRỌNG VỀ GIẤY TỜ MINH CHỨNG:</div>
-
-              <p className="leading-relaxed text-amber-900">
-
-                Hệ thống trực tuyến không yêu cầu tải lên tệp mạng. Sau khi đăng ký thành công, sinh viên vui lòng bấm <strong>In đơn A4</strong>, ký tên và mang theo <strong>bản chính hoặc bản sao công chứng giấy tờ ưu tiên</strong> để nộp trực tiếp tại bàn tiếp nhận KTX khi đến làm thủ tục nhập học tại trường!
-
-              </p>
-
-            </div>
-
-          </div>
-
-
-
-          <div className="bg-[#091430] border border-blue-900/60 p-6 rounded-2xl shadow-xl space-y-4">
-
-            <h3 className="font-bold text-xs sm:text-sm text-amber-300 uppercase tracking-wider flex items-center gap-2">
-
-              <span>📅</span> LỊCH NHẬP HỌC TRỰC TIẾP TẠI SỐ 10 ĐƯỜNG 3/2, PHƯỜNG HÒA HƯNG, TP.HCM
-
-            </h3>
-
-
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-
-              {lichNhapHocList.length > 0 ? (
-
-                lichNhapHocList.map((lich) => (
-
-                  <div key={lich.id} className="p-4 bg-black/40 border border-blue-900/40 rounded-xl space-y-1.5">
-
-                    <div className="font-bold text-amber-400 text-sm">🕒 {lich.tieu_de_ngay}</div>
-
-                    <p className="text-gray-300 leading-relaxed">Ngành: {lich.danh_sach_nganh}</p>
-
-                  </div>
-
-                ))
-
-              ) : (
-
-                <div className="text-gray-400 text-center py-4 md:col-span-3">Đang cập nhật lịch nhập học...</div>
-
               )}
+            </div>
+          </div>
 
+          {/* MỤC 3: ĐĂNG KÝ XÉT DUYỆT KÝ TÚC XÁ (KTX) */}
+          <div className="space-y-4">
+            <div className="font-extrabold text-sm uppercase tracking-wider text-[#0E1E45] border-b pb-2 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span>🏢</span> 3. NGUYỆN VỌNG ĐĂNG KÝ LƯU TRÚ KÝ TÚC XÁ
+              </span>
+              <label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-blue-900">
+                <input
+                  type="checkbox"
+                  checked={formData.dang_ky_ktx}
+                  onChange={(e) => setFormData({ ...formData, dang_ky_ktx: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 rounded"
+                />
+                Có đăng ký KTX
+              </label>
             </div>
 
+            {formData.dang_ky_ktx ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Cơ sở Ký túc xá đăng ký (*):</label>
+                  <select
+                    value={formData.khu_ktx_dang_ky}
+                    onChange={(e) => setFormData({ ...formData, khu_ktx_dang_ky: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 font-semibold text-gray-900"
+                  >
+                    {danhSachCoSoKtx.map((c: any) => (
+                      <option key={c.id_toa_nha || c.id} value={c.ten_toa_nha}>
+                        {c.ten_toa_nha} ({c.loai_phong})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-gray-700 mb-1">Bậc ưu tiên xét duyệt (*):</label>
+                  <select
+                    value={formData.bac_uu_tien}
+                    onChange={(e) => setFormData({ ...formData, bac_uu_tien: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 font-semibold text-gray-900"
+                  >
+                    {danhSachBacUuTien.map((b: any) => (
+                      <option key={b.id} value={b.ten_bac}>
+                        {b.ten_bac}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic">Thí sinh chọn không lưu trú tại Ký túc xá Học viện.</p>
+            )}
           </div>
 
-        </div>
+          {/* NÚT HOÀN TẤT HỒ SƠ */}
+          <div className="pt-4 border-t flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-[11px] text-gray-500 italic">
+              * Sinh viên cam đoan các thông tin kê khai trên là hoàn toàn chính xác theo căn cước công dân và CSDL bảo hiểm xã hội.
+            </p>
 
-
-
-      </main>
-
-
-
-      {/* 3. FOOTER CHÂN TRANG */}
-
-      <footer className="bg-[#050C1F] text-white py-6 px-4 sm:px-8 border-t border-blue-900/40 text-center mt-auto">
-
-        <div className="max-w-6xl mx-auto space-y-2 text-xs">
-
-          <div className="font-extrabold text-sm sm:text-base text-amber-400 uppercase tracking-wide">
-
-            PHÂN HIỆU HỌC VIỆN HÀNH CHÍNH VÀ QUẢN TRỊ CÔNG TẠI THÀNH PHỐ HỒ CHÍ MINH
-
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full sm:w-auto px-8 py-3.5 bg-[#8B0000] hover:bg-[#700000] text-white font-extrabold rounded-xl shadow-xl transition disabled:opacity-50 cursor-pointer text-xs sm:text-sm flex items-center justify-center gap-2"
+            >
+              <span>{submitting ? 'Đang lưu vào CSDL...' : 'Lưu & Hoàn Tất Hồ Sơ Nhập Học'}</span>
+              <span>✓</span>
+            </button>
           </div>
 
-          <p className="text-gray-300 text-[11px] sm:text-xs">
-
-            Cơ sở chính: Số 10, đường 3/2, Phường Hòa Hưng, Quận 10, TP. Hồ Chí Minh • Hotline KTX: <strong className="text-amber-300 font-mono">{systemConfigs.HOTLINE_KTX}</strong>
-
-          </p>
-
-          <div className="text-[11px] text-gray-400 pt-1 border-t border-white/10">
-
-            © {systemConfigs.NAM_HOC} APAG Phân hiệu TP. Hồ Chí Minh. All Rights Reserved.
-
-          </div>
-
-        </div>
-
-      </footer>
-
-
-
+        </form>
+      </div>
     </div>
-
   );
-
-} 
-
+}
