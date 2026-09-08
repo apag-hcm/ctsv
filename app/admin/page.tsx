@@ -1,169 +1,40 @@
 'use client';
 
 import Link from 'next/link';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import * as XLSX from 'xlsx';
 import { supabase } from '@/utils/supabase/client';
 import { parseExcelFile, exportToExcel } from '@/utils/excelMapper';
 
 const EXPORT_COLUMNS_CONFIG = [
   { key: 'stt', label: 'STT', group: 'Cá nhân & Định danh', default: true },
-  {
-    key: 'ma_ho_so',
-    label: 'Mã Hồ Sơ KTX',
-    group: 'Cơ sở & Duyệt KTX',
-    default: true,
-  },
-  {
-    key: 'cccd',
-    label: 'Số CCCD / ĐDCN',
-    group: 'Cá nhân & Định danh',
-    default: true,
-  },
-  {
-    key: 'ma_sv',
-    label: 'Mã Sinh Viên (MSSV)',
-    group: 'Cá nhân & Định danh',
-    default: true,
-  },
-  {
-    key: 'ho_ten',
-    label: 'Họ và Tên',
-    group: 'Cá nhân & Định danh',
-    default: true,
-  },
-  {
-    key: 'gioi_tinh',
-    label: 'Giới tính',
-    group: 'Cá nhân & Định danh',
-    default: true,
-  },
-  {
-    key: 'ngay_sinh',
-    label: 'Ngày sinh',
-    group: 'Cá nhân & Định danh',
-    default: true,
-  },
-  {
-    key: 'sdt_ca_nhan',
-    label: 'SĐT cá nhân',
-    group: 'Cá nhân & Định danh',
-    default: true,
-  },
-  {
-    key: 'sdt_gia_dinh',
-    label: 'SĐT gia đình',
-    group: 'Cá nhân & Định danh',
-    default: false,
-  },
-  {
-    key: 'email_sv',
-    label: 'Email sinh viên',
-    group: 'Cá nhân & Định danh',
-    default: false,
-  },
-  {
-    key: 'ho_khau_thuong_tru',
-    label: 'Hộ khẩu thường trú',
-    group: 'Cá nhân & Định danh',
-    default: true,
-  },
-  {
-    key: 'ngay_cap_cccd',
-    label: 'Ngày cấp CCCD',
-    group: 'Cá nhân & Định danh',
-    default: false,
-  },
-  {
-    key: 'noi_cap_cccd',
-    label: 'Nơi cấp CCCD',
-    group: 'Cá nhân & Định danh',
-    default: false,
-  },
-  {
-    key: 'nganh_hoc',
-    label: 'Ngành trúng tuyển',
-    group: 'Cơ sở & Duyệt KTX',
-    default: true,
-  },
-  {
-    key: 'diem_xet_tuyen',
-    label: 'Điểm xét tuyển',
-    group: 'Cơ sở & Duyệt KTX',
-    default: true,
-  },
-  {
-    key: 'bac_uu_tien',
-    label: 'Bậc ưu tiên KTX',
-    group: 'Cơ sở & Duyệt KTX',
-    default: true,
-  },
-  {
-    key: 'khu_ktx_dang_ky',
-    label: 'Cơ sở KTX đăng ký',
-    group: 'Cơ sở & Duyệt KTX',
-    default: true,
-  },
-  {
-    key: 'trang_thai_duyet',
-    label: 'Trạng thái duyệt KTX',
-    group: 'Cơ sở & Duyệt KTX',
-    default: true,
-  },
-  {
-    key: 'ly_do_tu_choi',
-    label: 'Lý do từ chối (nếu có)',
-    group: 'Cơ sở & Duyệt KTX',
-    default: false,
-  },
-  {
-    key: 'thoi_gian_nop',
-    label: 'Thời gian nộp đơn',
-    group: 'Cơ sở & Duyệt KTX',
-    default: false,
-  },
-  {
-    key: 'co_tam_tru_hcm',
-    label: 'Có tạm trú TP.HCM',
-    group: 'BHYT & VNeID',
-    default: false,
-  },
-  {
-    key: 'dia_chi_tam_tru_vneid',
-    label: 'Địa chỉ tạm trú VNeID',
-    group: 'BHYT & VNeID',
-    default: false,
-  },
-  {
-    key: 'ma_the_bhyt',
-    label: 'Mã thẻ BHYT',
-    group: 'BHYT & VNeID',
-    default: false,
-  },
-  {
-    key: 'han_su_dung_bhyt',
-    label: 'Hạn dùng thẻ BHYT',
-    group: 'BHYT & VNeID',
-    default: false,
-  },
-  {
-    key: 'doi_tuong_bhyt',
-    label: 'Đối tượng BHYT',
-    group: 'BHYT & VNeID',
-    default: false,
-  },
-  {
-    key: 'da_kham_sk_kh228',
-    label: 'Khám SK KH228',
-    group: 'BHYT & VNeID',
-    default: false,
-  },
-  {
-    key: 'quoc_tich',
-    label: 'Quốc tịch',
-    group: 'BHYT & VNeID',
-    default: false,
-  },
+  { key: 'ma_ho_so', label: 'Mã Hồ Sơ KTX', group: 'Cơ sở & Duyệt KTX', default: true },
+  { key: 'cccd', label: 'Số CCCD / ĐDCN', group: 'Cá nhân & Định danh', default: true },
+  { key: 'ma_sv', label: 'Mã Sinh Viên (MSSV)', group: 'Cá nhân & Định danh', default: true },
+  { key: 'ho_ten', label: 'Họ và Tên', group: 'Cá nhân & Định danh', default: true },
+  { key: 'gioi_tinh', label: 'Giới tính', group: 'Cá nhân & Định danh', default: true },
+  { key: 'ngay_sinh', label: 'Ngày sinh', group: 'Cá nhân & Định danh', default: true },
+  { key: 'sdt_ca_nhan', label: 'SĐT cá nhân', group: 'Cá nhân & Định danh', default: true },
+  { key: 'sdt_gia_dinh', label: 'SĐT gia đình', group: 'Cá nhân & Định danh', default: false },
+  { key: 'email_sv', label: 'Email sinh viên', group: 'Cá nhân & Định danh', default: false },
+  { key: 'ho_khau_thuong_tru', label: 'Hộ khẩu thường trú', group: 'Cá nhân & Định danh', default: true },
+  { key: 'ngay_cap_cccd', label: 'Ngày cấp CCCD', group: 'Cá nhân & Định danh', default: false },
+  { key: 'noi_cap_cccd', label: 'Nơi cấp CCCD', group: 'Cá nhân & Định danh', default: false },
+  { key: 'nganh_hoc', label: 'Ngành trúng tuyển', group: 'Cơ sở & Duyệt KTX', default: true },
+  { key: 'diem_xet_tuyen', label: 'Điểm xét tuyển', group: 'Cơ sở & Duyệt KTX', default: true },
+  { key: 'bac_uu_tien', label: 'Bậc ưu tiên KTX', group: 'Cơ sở & Duyệt KTX', default: true },
+  { key: 'khu_ktx_dang_ky', label: 'Cơ sở KTX đăng ký', group: 'Cơ sở & Duyệt KTX', default: true },
+  { key: 'trang_thai_duyet', label: 'Trạng thái duyệt KTX', group: 'Cơ sở & Duyệt KTX', default: true },
+  { key: 'ly_do_tu_choi', label: 'Lý do từ chối (nếu có)', group: 'Cơ sở & Duyệt KTX', default: false },
+  { key: 'thoi_gian_nop', label: 'Thời gian nộp đơn', group: 'Cơ sở & Duyệt KTX', default: false },
+  { key: 'co_tam_tru_hcm', label: 'Có tạm trú TP.HCM', group: 'BHYT & VNeID', default: false },
+  { key: 'dia_chi_tam_tru_vneid', label: 'Địa chỉ tạm trú VNeID', group: 'BHYT & VNeID', default: false },
+  { key: 'ma_the_bhyt', label: 'Mã thẻ BHYT', group: 'BHYT & VNeID', default: false },
+  { key: 'han_su_dung_bhyt', label: 'Hạn dùng thẻ BHYT', group: 'BHYT & VNeID', default: false },
+  { key: 'doi_tuong_bhyt', label: 'Đối tượng BHYT', group: 'BHYT & VNeID', default: false },
+  { key: 'da_kham_sk_kh228', label: 'Khám SK KH228', group: 'BHYT & VNeID', default: false },
+  { key: 'quoc_tich', label: 'Quốc tịch', group: 'BHYT & VNeID', default: false },
   { key: 'dan_toc', label: 'Dân tộc', group: 'BHYT & VNeID', default: false },
 ];
 
@@ -171,9 +42,7 @@ export default function APAGAdminKTXPortal() {
   const router = useRouter();
 
   const [currentAdmin, setCurrentAdmin] = useState<any>(null);
-  const [mainTab, setMainTab] = useState<'quanly' | 'caidat' | 'phanquyen'>(
-    'quanly'
-  );
+  const [mainTab, setMainTab] = useState<'quanly' | 'caidat' | 'phanquyen'>('quanly');
 
   // Modal đăng nhập Admin
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -197,11 +66,14 @@ export default function APAGAdminKTXPortal() {
     EXPORT_COLUMNS_CONFIG.filter((c) => c.default).map((c) => c.key)
   );
 
-  // Modal Nạp Excel
+  // Modal Nạp Excel Sinh Viên
   const [showImportModal, setShowImportModal] = useState(false);
-  const [selectedImportFile, setSelectedImportFile] = useState<File | null>(
-    null
-  );
+  const [selectedImportFile, setSelectedImportFile] = useState<File | null>(null);
+
+  // Tiến trình nạp danh mục bệnh viện KCB
+  const [uploadingKcb, setUploadingKcb] = useState(false);
+  const [kcbProgress, setKcbProgress] = useState<{ current: number; total: number; percent: number } | null>(null);
+  const kcbFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Cấu hình Hệ Thống
   const [systemConfigs, setSystemConfigs] = useState({
@@ -214,27 +86,13 @@ export default function APAGAdminKTXPortal() {
 
   // Modal CRUD cấu hình động
   const [modalType, setModalType] = useState<
-    | 'LICH'
-    | 'COSO'
-    | 'BAC'
-    | 'NGANH'
-    | 'HAN_BHYT'
-    | 'DT_BHYT'
-    | 'ADMIN_USER'
-    | null
+    'LICH' | 'COSO' | 'BAC' | 'NGANH' | 'HAN_BHYT' | 'DT_BHYT' | 'ADMIN_USER' | null
   >(null);
   const [editItem, setEditItem] = useState<any>(null);
 
   // Forms CMS
-  const [formLich, setFormLich] = useState({
-    tieu_de_ngay: '',
-    danh_sach_nganh: '',
-  });
-  const [formCoSo, setFormCoSo] = useState({
-    ten_toa_nha: '',
-    loai_phong: '',
-    tong_so_giuong: 150,
-  });
+  const [formLich, setFormLich] = useState({ tieu_de_ngay: '', danh_sach_nganh: '' });
+  const [formCoSo, setFormCoSo] = useState({ ten_toa_nha: '', loai_phong: '', tong_so_giuong: 150 });
   const [formBac, setFormBac] = useState({ ten_bac: '', mo_ta_tieu_chi: '' });
   const [formGeneric, setFormGeneric] = useState({ ten: '', thu_tu: 1 });
   const [formAdminUser, setFormAdminUser] = useState({
@@ -257,7 +115,6 @@ export default function APAGAdminKTXPortal() {
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // KIỂM TRA BẢO MẬT ĐĂNG NHẬP (AUTH GUARD)
   useEffect(() => {
     const rawAdmin = localStorage.getItem('admin_user');
     if (!rawAdmin) {
@@ -316,9 +173,7 @@ export default function APAGAdminKTXPortal() {
         setLoginError('Email hoặc Mật khẩu quản trị không chính xác!');
       }
     } catch (err: any) {
-      setLoginError(
-        'Lỗi đăng nhập: ' + (err.message || 'Không kết nối được CSDL')
-      );
+      setLoginError('Lỗi đăng nhập: ' + (err.message || 'Không kết nối được CSDL'));
     } finally {
       setActionLoading(false);
     }
@@ -421,46 +276,14 @@ export default function APAGAdminKTXPortal() {
 
       setDormRegs(mergedList);
 
-      const [
-        lichRes,
-        coSoRes,
-        bacRes,
-        nganhRes,
-        hanRes,
-        dtRes,
-        adminRes,
-        settingRes,
-      ] = await Promise.all([
-        supabase
-          .from('lich_nhap_hoc')
-          .select('*')
-          .order('thu_tu', { ascending: true }),
-        supabase
-          .from('co_so_ktx')
-          .select('*')
-          .eq('is_deleted', false)
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('danh_muc_bac_uu_tien')
-          .select('*')
-          .order('thu_tu', { ascending: true }),
-        supabase
-          .from('danh_muc_nganh_hoc')
-          .select('*')
-          .order('thu_tu', { ascending: true }),
-        supabase
-          .from('danh_muc_han_bhyt')
-          .select('*')
-          .order('thu_tu', { ascending: true }),
-        supabase
-          .from('danh_muc_doi_tuong_bhyt')
-          .select('*')
-          .order('thu_tu', { ascending: true }),
-        supabase
-          .from('admin_users')
-          .select('*')
-          .eq('is_deleted', false)
-          .order('created_at', { ascending: true }),
+      const [lichRes, coSoRes, bacRes, nganhRes, hanRes, dtRes, adminRes, settingRes] = await Promise.all([
+        supabase.from('lich_nhap_hoc').select('*').order('thu_tu', { ascending: true }),
+        supabase.from('co_so_ktx').select('*').eq('is_deleted', false).order('created_at', { ascending: true }),
+        supabase.from('danh_muc_bac_uu_tien').select('*').order('thu_tu', { ascending: true }),
+        supabase.from('danh_muc_nganh_hoc').select('*').order('thu_tu', { ascending: true }),
+        supabase.from('danh_muc_han_bhyt').select('*').order('thu_tu', { ascending: true }),
+        supabase.from('danh_muc_doi_tuong_bhyt').select('*').order('thu_tu', { ascending: true }),
+        supabase.from('admin_users').select('*').eq('is_deleted', false).order('created_at', { ascending: true }),
         supabase.from('system_settings').select('*').eq('is_deleted', false),
       ]);
 
@@ -474,15 +297,11 @@ export default function APAGAdminKTXPortal() {
 
       if (settingRes.data) {
         const configMap: Record<string, string> = {};
-        settingRes.data.forEach((s: any) => {
-          configMap[s.key_name] = s.value_data;
-        });
-
+        settingRes.data.forEach((s: any) => { configMap[s.key_name] = s.value_data; });
         setSystemConfigs({
           NAM_HOC: configMap['NAM_HOC'] || '2027',
           TRANG_THAI_CONG: configMap['TRANG_THAI_CONG'] || 'AUTO',
-          DEADLINE_DANG_KY:
-            configMap['DEADLINE_DANG_KY'] || '2027-08-30 17:00:00',
+          DEADLINE_DANG_KY: configMap['DEADLINE_DANG_KY'] || '2027-08-30 17:00:00',
           NGAY_TIEP_SINH: configMap['NGAY_TIEP_SINH'] || '25 - 26/8/2027',
           HOTLINE_KTX: configMap['HOTLINE_KTX'] || '0905.865.919',
         });
@@ -501,16 +320,12 @@ export default function APAGAdminKTXPortal() {
   };
 
   const togglePortalStatus = async () => {
-    const nextStatus =
-      systemConfigs.TRANG_THAI_CONG === 'OPEN' ? 'CLOSED' : 'OPEN';
+    const nextStatus = systemConfigs.TRANG_THAI_CONG === 'OPEN' ? 'CLOSED' : 'OPEN';
     try {
       setActionLoading(true);
       await supabase
         .from('system_settings')
-        .upsert(
-          { key_name: 'TRANG_THAI_CONG', value_data: nextStatus },
-          { onConflict: 'key_name' }
-        );
+        .upsert({ key_name: 'TRANG_THAI_CONG', value_data: nextStatus }, { onConflict: 'key_name' });
       setSystemConfigs((prev) => ({ ...prev, TRANG_THAI_CONG: nextStatus }));
       alert(`Đã đổi trạng thái Cổng sang: ${nextStatus}`);
     } catch (err: any) {
@@ -520,10 +335,7 @@ export default function APAGAdminKTXPortal() {
     }
   };
 
-  const handleUpdateStatus = async (
-    ma_ho_so: string,
-    newStatus: 'DA_DUYET' | 'TU_CHOI'
-  ) => {
+  const handleUpdateStatus = async (ma_ho_so: string, newStatus: 'DA_DUYET' | 'TU_CHOI') => {
     let reason = null;
     if (newStatus === 'TU_CHOI') {
       reason = prompt('Nhập lý do từ chối hồ sơ này:');
@@ -553,7 +365,6 @@ export default function APAGAdminKTXPortal() {
 
     const exportRows = filteredRegs.map((r, index) => {
       const rowData: Record<string, any> = {};
-
       selectedExportKeys.forEach((key) => {
         const colConfig = EXPORT_COLUMNS_CONFIG.find((c) => c.key === key);
         const headerLabel = colConfig ? colConfig.label : key;
@@ -568,11 +379,9 @@ export default function APAGAdminKTXPortal() {
               ? 'Từ chối'
               : 'Chờ duyệt';
         } else {
-          rowData[headerLabel] =
-            r[key] !== undefined && r[key] !== null ? r[key] : '';
+          rowData[headerLabel] = r[key] !== undefined && r[key] !== null ? r[key] : '';
         }
       });
-
       return rowData;
     });
 
@@ -604,18 +413,9 @@ export default function APAGAdminKTXPortal() {
       setShowImportModal(false);
 
       if (isCleanYearReset) {
-        await supabase
-          .from('dang_ky_bhyt')
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000');
-        await supabase
-          .from('dang_ky_ktx')
-          .delete()
-          .neq('ma_ho_so', 'KEY_NEVER_MATCH');
-        await supabase
-          .from('sinh_vien')
-          .delete()
-          .neq('cccd', 'KEY_NEVER_MATCH');
+        await supabase.from('dang_ky_bhyt').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        await supabase.from('dang_ky_ktx').delete().neq('ma_ho_so', 'KEY_NEVER_MATCH');
+        await supabase.from('sinh_vien').delete().neq('cccd', 'KEY_NEVER_MATCH');
       }
 
       const rows = await parseExcelFile(selectedImportFile);
@@ -624,29 +424,16 @@ export default function APAGAdminKTXPortal() {
 
       rows.forEach((r: any, idx: number) => {
         let rawCccd = String(
-          r['Số ĐDCN'] ??
-            r['So DDCN'] ??
-            r['CCCD'] ??
-            r['cccd'] ??
-            r['Số CCCD'] ??
-            ''
+          r['Số ĐDCN'] ?? r['So DDCN'] ?? r['CCCD'] ?? r['cccd'] ?? r['Số CCCD'] ?? ''
         ).trim();
         if (rawCccd && rawCccd.length > 0 && rawCccd.length < 12) {
           rawCccd = rawCccd.padStart(12, '0');
         }
 
-        const hoTen = String(
-          r['Họ và tên'] ?? r['Họ và Tên'] ?? r['ho_ten'] ?? ''
-        ).trim();
-        const maSv = String(
-          r['Ma sinh vien'] ?? r['Mã SV'] ?? r['ma_sv'] ?? ''
-        ).trim();
-        const gioiTinh = String(
-          r['Giới tính'] ?? r['gioi_tinh'] ?? 'Nam'
-        ).trim();
-        const nganhHoc = String(
-          r['Tên mã xét tuyển trúng tuyển'] ?? r['Ngành học'] ?? ''
-        ).trim();
+        const hoTen = String(r['Họ và tên'] ?? r['Họ và Tên'] ?? r['ho_ten'] ?? '').trim();
+        const maSv = String(r['Ma sinh vien'] ?? r['Mã SV'] ?? r['ma_sv'] ?? '').trim();
+        const gioiTinh = String(r['Giới tính'] ?? r['gioi_tinh'] ?? 'Nam').trim();
+        const nganhHoc = String(r['Tên mã xét tuyển trúng tuyển'] ?? r['Ngành học'] ?? '').trim();
         const diem = Number(r['Điểm trúng tuyển']) || 24.5;
 
         if (rawCccd.length === 12 && hoTen.length > 0) {
@@ -674,12 +461,8 @@ export default function APAGAdminKTXPortal() {
       });
 
       for (let i = 0; i < formattedStudents.length; i += 200) {
-        await supabase
-          .from('sinh_vien')
-          .upsert(formattedStudents.slice(i, i + 200), { onConflict: 'cccd' });
-        await supabase
-          .from('dang_ky_ktx')
-          .upsert(formattedRegs.slice(i, i + 200), { onConflict: 'ma_ho_so' });
+        await supabase.from('sinh_vien').upsert(formattedStudents.slice(i, i + 200), { onConflict: 'cccd' });
+        await supabase.from('dang_ky_ktx').upsert(formattedRegs.slice(i, i + 200), { onConflict: 'ma_ho_so' });
       }
 
       alert(
@@ -696,13 +479,72 @@ export default function APAGAdminKTXPortal() {
     }
   };
 
+  // NẠP DANH MỤC BỆNH VIỆN TỪ SHEET KCB
+  const handleKcbFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingKcb(true);
+      setKcbProgress({ current: 0, total: 0, percent: 0 });
+
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+
+      const sheetName = workbook.SheetNames.find((s) => s.trim().toUpperCase() === 'KCB');
+      if (!sheetName) {
+        throw new Error('Không tìm thấy trang tính có tên "KCB" trong tệp Excel mẫu.');
+      }
+
+      const worksheet = workbook.Sheets[sheetName];
+      const rawData: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+      if (!rawData || rawData.length === 0) {
+        throw new Error('Dữ liệu cơ sở y tế trong sheet KCB rỗng.');
+      }
+
+      const cleanData = rawData
+        .map((row) => ({
+          ma_tinh: String(row['MaTinh'] || row['ma_tinh'] || '').trim(),
+          ma_benh_vien: String(row['MaBenhVien'] || row['ma_benh_vien'] || '').trim(),
+          ten_benh_vien: String(row['TenBenhVien'] || row['ten_benh_vien'] || '').trim(),
+        }))
+        .filter((item) => item.ma_benh_vien && item.ten_benh_vien);
+
+      const totalRows = cleanData.length;
+      const batchSize = 500;
+
+      for (let i = 0; i < totalRows; i += batchSize) {
+        const batch = cleanData.slice(i, i + batchSize);
+        const { error } = await supabase
+          .from('danh_muc_cskcb')
+          .upsert(batch, { onConflict: 'ma_benh_vien' });
+
+        if (error) throw error;
+
+        const currentCount = Math.min(i + batchSize, totalRows);
+        setKcbProgress({
+          current: currentCount,
+          total: totalRows,
+          percent: Math.round((currentCount / totalRows) * 100),
+        });
+      }
+
+      alert(`🎉 Đã đồng bộ thành công ${totalRows.toLocaleString('vi-VN')} cơ sở khám chữa bệnh vào CSDL Supabase!`);
+    } catch (err: any) {
+      console.error('Lỗi tải tệp KCB:', err);
+      alert('Lỗi nạp danh mục bệnh viện: ' + (err.message || err));
+    } finally {
+      setUploadingKcb(false);
+      setKcbProgress(null);
+      if (kcbFileInputRef.current) kcbFileInputRef.current.value = '';
+    }
+  };
+
   const handleSaveLich = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editItem) {
-      await supabase
-        .from('lich_nhap_hoc')
-        .update(formLich)
-        .eq('id', editItem.id);
+      await supabase.from('lich_nhap_hoc').update(formLich).eq('id', editItem.id);
     } else {
       await supabase.from('lich_nhap_hoc').insert([formLich]);
     }
@@ -720,9 +562,7 @@ export default function APAGAdminKTXPortal() {
 
   const handleSaveCoSo = async (e: React.FormEvent) => {
     e.preventDefault();
-    await supabase
-      .from('co_so_ktx')
-      .insert([{ ...formCoSo, so_giuong_trong: formCoSo.tong_so_giuong }]);
+    await supabase.from('co_so_ktx').insert([{ ...formCoSo, so_giuong_trong: formCoSo.tong_so_giuong }]);
     setModalType(null);
     loadAllData();
   };
@@ -801,9 +641,7 @@ export default function APAGAdminKTXPortal() {
       }));
 
       for (const item of entries) {
-        await supabase
-          .from('system_settings')
-          .upsert(item, { onConflict: 'key_name' });
+        await supabase.from('system_settings').upsert(item, { onConflict: 'key_name' });
       }
 
       alert('🎉 Đã lưu cấu hình hệ thống thành công!');
@@ -848,10 +686,7 @@ export default function APAGAdminKTXPortal() {
     }
   };
 
-  const handleToggleAdminStatus = async (
-    adminId: string,
-    currentStatus: boolean
-  ) => {
+  const handleToggleAdminStatus = async (adminId: string, currentStatus: boolean) => {
     try {
       await supabase
         .from('admin_users')
@@ -883,23 +718,14 @@ export default function APAGAdminKTXPortal() {
   };
 
   const totalCapacity = useMemo(() => {
-    return (
-      coSoKtxList.reduce((acc, cur) => acc + (cur.tong_so_giuong || 0), 0) ||
-      590
-    );
+    return coSoKtxList.reduce((acc, cur) => acc + (cur.tong_so_giuong || 0), 0) || 590;
   }, [coSoKtxList]);
 
   const totalOccupied = useMemo(() => {
-    return dormRegs.filter(
-      (r) =>
-        r.trang_thai_duyet === 'DA_DUYET' || r.trang_thai_duyet === 'CHO_DUYET'
-    ).length;
+    return dormRegs.filter((r) => r.trang_thai_duyet === 'DA_DUYET' || r.trang_thai_duyet === 'CHO_DUYET').length;
   }, [dormRegs]);
 
-  const occupancyPercent =
-    totalCapacity > 0
-      ? ((totalOccupied / totalCapacity) * 100).toFixed(1)
-      : '0.0';
+  const occupancyPercent = totalCapacity > 0 ? ((totalOccupied / totalCapacity) * 100).toFixed(1) : '0.0';
 
   const totalPriorityCount = useMemo(() => {
     return dormRegs.filter((r) => {
@@ -940,24 +766,13 @@ export default function APAGAdminKTXPortal() {
         (r.ma_sv && r.ma_sv.toLowerCase().includes(query));
 
       const matchNganh = filterNganh === 'ALL' || r.nganh_hoc === filterNganh;
-      const matchKhu =
-        filterKhuKtx === 'ALL' || r.khu_ktx_dang_ky === filterKhuKtx;
-      const matchBac =
-        filterBacUuTien === 'ALL' ||
-        (r.bac_uu_tien || '').startsWith(filterBacUuTien);
-      const matchStatus =
-        filterTrangThai === 'ALL' || r.trang_thai_duyet === filterTrangThai;
+      const matchKhu = filterKhuKtx === 'ALL' || r.khu_ktx_dang_ky === filterKhuKtx;
+      const matchBac = filterBacUuTien === 'ALL' || (r.bac_uu_tien || '').startsWith(filterBacUuTien);
+      const matchStatus = filterTrangThai === 'ALL' || r.trang_thai_duyet === filterTrangThai;
 
       return matchSearch && matchNganh && matchKhu && matchBac && matchStatus;
     });
-  }, [
-    dormRegs,
-    searchQuery,
-    filterNganh,
-    filterKhuKtx,
-    filterBacUuTien,
-    filterTrangThai,
-  ]);
+  }, [dormRegs, searchQuery, filterNganh, filterKhuKtx, filterBacUuTien, filterTrangThai]);
 
   const totalPages = Math.ceil(filteredRegs.length / itemsPerPage) || 1;
   const paginatedRegs = useMemo(() => {
@@ -965,19 +780,16 @@ export default function APAGAdminKTXPortal() {
     return filteredRegs.slice(start, start + itemsPerPage);
   }, [filteredRegs, currentPage]);
 
-  const groupedExportColumns = EXPORT_COLUMNS_CONFIG.reduce(
-    (acc: Record<string, any[]>, col) => {
-      if (!acc[col.group]) acc[col.group] = [];
-      acc[col.group].push(col);
-      return acc;
-    },
-    {}
-  );
+  const groupedExportColumns = EXPORT_COLUMNS_CONFIG.reduce((acc: Record<string, any[]>, col) => {
+    if (!acc[col.group]) acc[col.group] = [];
+    acc[col.group].push(col);
+    return acc;
+  }, {});
 
-  // Kiểm tra quyền Super Admin hiện tại
   const isSuperAdmin = currentAdmin?.role_khoa === 'SUPER_ADMIN';
+  const isKeToanBhyt = currentAdmin?.role_khoa === 'KE_TOAN_BHYT';
+  const canUploadKcb = isSuperAdmin || isKeToanBhyt;
 
-  // NẾU CHƯA ĐĂNG NHẬP -> HIỆN MODAL ĐĂNG NHẬP BẢO MẬT TUYỆT ĐỐI
   if (!currentAdmin) {
     return (
       <div className="min-h-screen bg-[#0E1E45] flex items-center justify-center p-4 font-sans">
@@ -986,19 +798,13 @@ export default function APAGAdminKTXPortal() {
             <div className="w-12 h-12 bg-[#8B0000] text-white rounded-2xl mx-auto flex items-center justify-center font-black text-sm shadow">
               APAG
             </div>
-            <h2 className="text-lg font-bold text-[#0E1E45]">
-              CỔNG QUẢN TRỊ & HỘI ĐỒNG DUYỆT KTX
-            </h2>
-            <p className="text-xs text-gray-500">
-              Vui lòng đăng nhập tài khoản Cán bộ / Admin được cấp phép.
-            </p>
+            <h2 className="text-lg font-bold text-[#0E1E45]">CỔNG QUẢN TRỊ & HỘI ĐỒNG DUYỆT KTX</h2>
+            <p className="text-xs text-gray-500">Vui lòng đăng nhập tài khoản Cán bộ / Admin được cấp phép.</p>
           </div>
 
           <form onSubmit={handleAdminLogin} className="space-y-4 text-xs">
             <div>
-              <label className="block font-bold text-gray-700 mb-1">
-                Email đăng nhập (*):
-              </label>
+              <label className="block font-bold text-gray-700 mb-1">Email đăng nhập (*):</label>
               <input
                 type="email"
                 value={loginEmail}
@@ -1010,9 +816,7 @@ export default function APAGAdminKTXPortal() {
             </div>
 
             <div>
-              <label className="block font-bold text-gray-700 mb-1">
-                Mật khẩu quản trị (*):
-              </label>
+              <label className="block font-bold text-gray-700 mb-1">Mật khẩu quản trị (*):</label>
               <input
                 type="password"
                 value={loginPassword}
@@ -1039,10 +843,7 @@ export default function APAGAdminKTXPortal() {
           </form>
 
           <div className="text-center pt-2">
-            <Link
-              href="/"
-              className="text-xs text-blue-700 hover:underline font-bold"
-            >
+            <Link href="/" className="text-xs text-blue-700 hover:underline font-bold">
               ← Quay lại Cổng thông tin Tân sinh viên
             </Link>
           </div>
@@ -1060,23 +861,18 @@ export default function APAGAdminKTXPortal() {
             <button
               onClick={() => setMainTab('quanly')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                mainTab === 'quanly'
-                  ? 'bg-[#0E1E45] text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-100'
+                mainTab === 'quanly' ? 'bg-[#0E1E45] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               Quản lý & Duyệt đơn
             </button>
 
-            {/* CHỈ SUPER_ADMIN MỚI NHÌN THẤY 2 TAB NÀY */}
             {isSuperAdmin && (
               <>
                 <button
                   onClick={() => setMainTab('caidat')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
-                    mainTab === 'caidat'
-                      ? 'bg-[#0E1E45] text-white shadow-sm'
-                      : 'text-gray-600 hover:bg-gray-100'
+                    mainTab === 'caidat' ? 'bg-[#0E1E45] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
                   <span>⚙️</span> Cài đặt & Cấu hình
@@ -1101,17 +897,14 @@ export default function APAGAdminKTXPortal() {
                 onClick={togglePortalStatus}
                 disabled={actionLoading}
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-bold text-white transition flex items-center gap-1.5 shadow-sm cursor-pointer ${
-                  systemConfigs.TRANG_THAI_CONG === 'OPEN' ||
-                  systemConfigs.TRANG_THAI_CONG === 'AUTO'
+                  systemConfigs.TRANG_THAI_CONG === 'OPEN' || systemConfigs.TRANG_THAI_CONG === 'AUTO'
                     ? 'bg-[#0E1E45] hover:bg-blue-900'
                     : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
                 <span
                   className={`w-2 h-2 rounded-full ${
-                    systemConfigs.TRANG_THAI_CONG !== 'CLOSED'
-                      ? 'bg-emerald-400 animate-pulse'
-                      : 'bg-white'
+                    systemConfigs.TRANG_THAI_CONG !== 'CLOSED' ? 'bg-emerald-400 animate-pulse' : 'bg-white'
                   }`}
                 ></span>
                 <span>
@@ -1127,11 +920,26 @@ export default function APAGAdminKTXPortal() {
 
             {isSuperAdmin && (
               <label className="cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
-                <span>📥 Nạp Excel</span>
+                <span>📥 Nạp Excel SV</span>
                 <input
                   type="file"
                   accept=".xlsx, .xls, .csv"
                   onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </label>
+            )}
+
+            {/* NÚT TẢI LÊN DANH MỤC BỆNH VIỆN CHO CÁN BỘ BHYT & SUPER ADMIN */}
+            {canUploadKcb && (
+              <label className="cursor-pointer bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm">
+                <span>🏥 {uploadingKcb ? 'Đang nạp KCB...' : 'Nạp Danh Mục BV (KCB)'}</span>
+                <input
+                  ref={kcbFileInputRef}
+                  type="file"
+                  accept=".xlsx, .xls"
+                  disabled={uploadingKcb}
+                  onChange={handleKcbFileUpload}
                   className="hidden"
                 />
               </label>
@@ -1161,6 +969,24 @@ export default function APAGAdminKTXPortal() {
           </div>
         </div>
 
+        {/* THANH TIẾN TRÌNH REALTIME KHI NẠP DANH MỤC KCB */}
+        {uploadingKcb && kcbProgress && (
+          <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
+            <div className="max-w-[1400px] mx-auto flex items-center justify-between text-xs font-bold text-blue-900 mb-1.5">
+              <span className="flex items-center gap-1.5">
+                <span className="animate-spin">⏳</span> Đang nạp danh mục bệnh viện vào Supabase...
+              </span>
+              <span>{kcbProgress.current} / {kcbProgress.total} cơ sở ({kcbProgress.percent}%)</span>
+            </div>
+            <div className="w-full bg-blue-200 h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-blue-700 h-full transition-all duration-200"
+                style={{ width: `${kcbProgress.percent}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
+
         {/* 2. NỘI DUNG CÁC TAB */}
         {mainTab === 'quanly' ? (
           <div className="p-4 sm:p-6 space-y-6">
@@ -1177,9 +1003,7 @@ export default function APAGAdminKTXPortal() {
                 <div className="w-full bg-blue-900/60 h-1.5 rounded-full overflow-hidden mt-3">
                   <div
                     className="bg-amber-400 h-full rounded-full"
-                    style={{
-                      width: `${Math.min(Number(occupancyPercent), 100)}%`,
-                    }}
+                    style={{ width: `${Math.min(Number(occupancyPercent), 100)}%` }}
                   ></div>
                 </div>
               </div>
@@ -1240,9 +1064,7 @@ export default function APAGAdminKTXPortal() {
               >
                 <option value="ALL">-- Tất cả ngành --</option>
                 {distinctNganh.map((ng) => (
-                  <option key={ng} value={ng}>
-                    {ng}
-                  </option>
+                  <option key={ng} value={ng}>{ng}</option>
                 ))}
               </select>
 
@@ -1256,9 +1078,7 @@ export default function APAGAdminKTXPortal() {
               >
                 <option value="ALL">-- Tất cả cơ sở KTX --</option>
                 {distinctKhuKtx.map((khu) => (
-                  <option key={khu} value={khu}>
-                    {khu}
-                  </option>
+                  <option key={khu} value={khu}>{khu}</option>
                 ))}
               </select>
 
@@ -1292,9 +1112,7 @@ export default function APAGAdminKTXPortal() {
               </select>
 
               <div className="ml-auto text-xs text-gray-500 font-bold pr-1">
-                Kết quả:{' '}
-                <span className="text-[#0E1E45]">{filteredRegs.length}</span> /{' '}
-                {dormRegs.length}
+                Kết quả: <span className="text-[#0E1E45]">{filteredRegs.length}</span> / {dormRegs.length}
               </div>
             </div>
 
@@ -1321,43 +1139,26 @@ export default function APAGAdminKTXPortal() {
                   <tbody className="divide-y divide-gray-100 text-gray-700 font-medium">
                     {paginatedRegs.length === 0 ? (
                       <tr>
-                        <td
-                          colSpan={8}
-                          className="p-12 text-center text-gray-400"
-                        >
-                          Không tìm thấy hồ sơ đăng ký KTX nào theo tiêu chí
-                          lọc.
+                        <td colSpan={8} className="p-12 text-center text-gray-400">
+                          Không tìm thấy hồ sơ đăng ký KTX nào theo tiêu chí lọc.
                         </td>
                       </tr>
                     ) : (
                       paginatedRegs.map((r) => (
-                        <tr
-                          key={r.ma_ho_so}
-                          className="hover:bg-blue-50/40 transition items-center"
-                        >
+                        <tr key={r.ma_ho_so} className="hover:bg-blue-50/40 transition items-center">
                           <td className="p-3.5 pl-4 font-mono font-bold text-red-600 whitespace-nowrap">
                             {r.ma_ho_so}
                           </td>
-
                           <td className="p-3.5">
-                            <div className="font-bold text-gray-900 uppercase">
-                              {r.ho_ten}
-                            </div>
+                            <div className="font-bold text-gray-900 uppercase">{r.ho_ten}</div>
                             <div className="text-[10px] text-gray-400 font-mono mt-0.5">
                               MSSV: {r.ma_sv} • CCCD: {r.cccd}
                             </div>
                           </td>
-
                           <td className="p-3.5 text-gray-800">{r.nganh_hoc}</td>
-
-                          <td className="p-3.5 font-bold text-gray-900">
-                            {r.diem_xet_tuyen}
-                          </td>
-
+                          <td className="p-3.5 font-bold text-gray-900">{r.diem_xet_tuyen}</td>
                           <td className="p-3.5 max-w-xs">
-                            <div className="text-xs text-gray-800 font-semibold">
-                              {r.bac_uu_tien}
-                            </div>
+                            <div className="text-xs text-gray-800 font-semibold">{r.bac_uu_tien}</div>
                             {r.minh_chung_url && (
                               <a
                                 href={r.minh_chung_url}
@@ -1369,11 +1170,7 @@ export default function APAGAdminKTXPortal() {
                               </a>
                             )}
                           </td>
-
-                          <td className="p-3.5 text-xs text-gray-700 font-semibold">
-                            {r.khu_ktx_dang_ky}
-                          </td>
-
+                          <td className="p-3.5 text-xs text-gray-700 font-semibold">{r.khu_ktx_dang_ky}</td>
                           <td className="p-3.5 text-center whitespace-nowrap">
                             <span
                               className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-block ${
@@ -1399,25 +1196,20 @@ export default function APAGAdminKTXPortal() {
                               </div>
                             )}
                           </td>
-
                           <td className="p-3.5 pr-4 text-center whitespace-nowrap">
                             <div className="flex flex-col gap-1 items-center justify-center">
                               {r.trang_thai_duyet === 'CHO_DUYET' ? (
                                 <>
                                   <button
                                     disabled={actionLoading}
-                                    onClick={() =>
-                                      handleUpdateStatus(r.ma_ho_so, 'DA_DUYET')
-                                    }
+                                    onClick={() => handleUpdateStatus(r.ma_ho_so, 'DA_DUYET')}
                                     className="w-16 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold shadow-sm transition disabled:opacity-50 cursor-pointer"
                                   >
                                     Duyệt
                                   </button>
                                   <button
                                     disabled={actionLoading}
-                                    onClick={() =>
-                                      handleUpdateStatus(r.ma_ho_so, 'TU_CHOI')
-                                    }
+                                    onClick={() => handleUpdateStatus(r.ma_ho_so, 'TU_CHOI')}
                                     className="w-16 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-[11px] font-bold shadow-sm transition disabled:opacity-50 cursor-pointer"
                                   >
                                     Từ chối
@@ -1426,9 +1218,7 @@ export default function APAGAdminKTXPortal() {
                               ) : r.trang_thai_duyet === 'DA_DUYET' ? (
                                 <button
                                   disabled={actionLoading}
-                                  onClick={() =>
-                                    handleUpdateStatus(r.ma_ho_so, 'TU_CHOI')
-                                  }
+                                  onClick={() => handleUpdateStatus(r.ma_ho_so, 'TU_CHOI')}
                                   className="w-16 py-1 bg-gray-200 hover:bg-red-600 hover:text-white text-gray-700 rounded text-[10px] font-bold transition cursor-pointer"
                                 >
                                   Hủy duyệt
@@ -1436,9 +1226,7 @@ export default function APAGAdminKTXPortal() {
                               ) : (
                                 <button
                                   disabled={actionLoading}
-                                  onClick={() =>
-                                    handleUpdateStatus(r.ma_ho_so, 'DA_DUYET')
-                                  }
+                                  onClick={() => handleUpdateStatus(r.ma_ho_so, 'DA_DUYET')}
                                   className="w-16 py-1 bg-gray-200 hover:bg-emerald-600 hover:text-white text-gray-700 rounded text-[10px] font-bold transition cursor-pointer"
                                 >
                                   Duyệt lại
@@ -1458,11 +1246,9 @@ export default function APAGAdminKTXPortal() {
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2 text-xs text-gray-600">
               <div>
                 Hiển thị{' '}
-                {filteredRegs.length > 0
-                  ? (currentPage - 1) * itemsPerPage + 1
-                  : 0}{' '}
-                - {Math.min(currentPage * itemsPerPage, filteredRegs.length)}{' '}
-                trong số <strong>{filteredRegs.length}</strong> sinh viên
+                {filteredRegs.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} -{' '}
+                {Math.min(currentPage * itemsPerPage, filteredRegs.length)} trong số{' '}
+                <strong>{filteredRegs.length}</strong> sinh viên
               </div>
 
               <div className="flex items-center gap-1">
@@ -1474,34 +1260,28 @@ export default function APAGAdminKTXPortal() {
                   &lt; Trước
                 </button>
 
-                {Array.from({ length: Math.min(totalPages, 5) }).map(
-                  (_, idx) => {
-                    const pageNum = idx + 1;
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`w-8 h-8 rounded-lg font-bold transition cursor-pointer ${
-                          currentPage === pageNum
-                            ? 'bg-[#0E1E45] text-white shadow-sm'
-                            : 'border hover:bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  }
-                )}
+                {Array.from({ length: Math.min(totalPages, 5) }).map((_, idx) => {
+                  const pageNum = idx + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-8 h-8 rounded-lg font-bold transition cursor-pointer ${
+                        currentPage === pageNum
+                          ? 'bg-[#0E1E45] text-white shadow-sm'
+                          : 'border hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
 
-                {totalPages > 5 && (
-                  <span className="px-1 text-gray-400">...</span>
-                )}
+                {totalPages > 5 && <span className="px-1 text-gray-400">...</span>}
 
                 <button
                   disabled={currentPage >= totalPages}
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(p + 1, totalPages))
-                  }
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                   className="px-3 py-1.5 border rounded-lg hover:bg-gray-100 disabled:opacity-40 font-semibold cursor-pointer"
                 >
                   Sau &gt;
@@ -1510,20 +1290,16 @@ export default function APAGAdminKTXPortal() {
             </div>
           </div>
         ) : isSuperAdmin && mainTab === 'caidat' ? (
-          /* TAB 2: CÀI ĐẶT & CẤU HÌNH CMS (CHỈ SUPER_ADMIN) */
+          /* TAB 2: CÀI ĐẶT & CẤU HÌNH CMS */
           <div className="p-4 sm:p-8 space-y-8 bg-gray-50/50">
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                  <span>🎓</span> Quản lý Danh mục Ngành Trúng Tuyển (
-                  {nganhHocList.length})
+                  <span>🎓</span> Quản lý Danh mục Ngành Trúng Tuyển ({nganhHocList.length})
                 </h3>
                 <button
                   onClick={() => {
-                    setFormGeneric({
-                      ten: '',
-                      thu_tu: nganhHocList.length + 1,
-                    });
+                    setFormGeneric({ ten: '', thu_tu: nganhHocList.length + 1 });
                     setEditItem(null);
                     setModalType('NGANH');
                   }}
@@ -1548,16 +1324,11 @@ export default function APAGAdminKTXPortal() {
                         <td className="p-3 text-center font-mono font-bold text-gray-500">
                           {item.thu_tu || idx + 1}
                         </td>
-                        <td className="p-3 font-bold text-gray-900">
-                          {item.ten_nganh}
-                        </td>
+                        <td className="p-3 font-bold text-gray-900">{item.ten_nganh}</td>
                         <td className="p-3 text-right space-x-2">
                           <button
                             onClick={() => {
-                              setFormGeneric({
-                                ten: item.ten_nganh,
-                                thu_tu: item.thu_tu || idx + 1,
-                              });
+                              setFormGeneric({ ten: item.ten_nganh, thu_tu: item.thu_tu || idx + 1 });
                               setEditItem(item);
                               setModalType('NGANH');
                             }}
@@ -1566,12 +1337,7 @@ export default function APAGAdminKTXPortal() {
                             📝 Sửa
                           </button>
                           <button
-                            onClick={() =>
-                              handleDeleteGenericOption(
-                                'danh_muc_nganh_hoc',
-                                item.id
-                              )
-                            }
+                            onClick={() => handleDeleteGenericOption('danh_muc_nganh_hoc', item.id)}
                             className="px-2 py-1 border border-red-600 text-red-600 hover:bg-red-50 rounded text-[11px] font-bold cursor-pointer"
                           >
                             🗑️ Xóa
@@ -1587,8 +1353,7 @@ export default function APAGAdminKTXPortal() {
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                  <span>📅</span> Quản lý Tùy Chọn Hạn Thẻ BHYT (
-                  {hanBhytList.length})
+                  <span>📅</span> Quản lý Tùy Chọn Hạn Thẻ BHYT ({hanBhytList.length})
                 </h3>
                 <button
                   onClick={() => {
@@ -1617,16 +1382,11 @@ export default function APAGAdminKTXPortal() {
                         <td className="p-3 text-center font-mono font-bold text-gray-500">
                           {item.thu_tu || idx + 1}
                         </td>
-                        <td className="p-3 font-semibold text-gray-900">
-                          {item.ten_han}
-                        </td>
+                        <td className="p-3 font-semibold text-gray-900">{item.ten_han}</td>
                         <td className="p-3 text-right space-x-2">
                           <button
                             onClick={() => {
-                              setFormGeneric({
-                                ten: item.ten_han,
-                                thu_tu: item.thu_tu || idx + 1,
-                              });
+                              setFormGeneric({ ten: item.ten_han, thu_tu: item.thu_tu || idx + 1 });
                               setEditItem(item);
                               setModalType('HAN_BHYT');
                             }}
@@ -1635,12 +1395,7 @@ export default function APAGAdminKTXPortal() {
                             📝 Sửa
                           </button>
                           <button
-                            onClick={() =>
-                              handleDeleteGenericOption(
-                                'danh_muc_han_bhyt',
-                                item.id
-                              )
-                            }
+                            onClick={() => handleDeleteGenericOption('danh_muc_han_bhyt', item.id)}
                             className="px-2 py-1 border border-red-600 text-red-600 hover:bg-red-50 rounded text-[11px] font-bold cursor-pointer"
                           >
                             🗑️ Xóa
@@ -1656,15 +1411,11 @@ export default function APAGAdminKTXPortal() {
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                  <span>🏥</span> Quản lý Tùy Chọn Đối Tượng Tham Gia BHYT (
-                  {doiTuongBhytList.length})
+                  <span>🏥</span> Quản lý Tùy Chọn Đối Tượng Tham Gia BHYT ({doiTuongBhytList.length})
                 </h3>
                 <button
                   onClick={() => {
-                    setFormGeneric({
-                      ten: '',
-                      thu_tu: doiTuongBhytList.length + 1,
-                    });
+                    setFormGeneric({ ten: '', thu_tu: doiTuongBhytList.length + 1 });
                     setEditItem(null);
                     setModalType('DT_BHYT');
                   }}
@@ -1689,16 +1440,11 @@ export default function APAGAdminKTXPortal() {
                         <td className="p-3 text-center font-mono font-bold text-gray-500">
                           {item.thu_tu || idx + 1}
                         </td>
-                        <td className="p-3 font-semibold text-gray-900">
-                          {item.ten_doi_tuong}
-                        </td>
+                        <td className="p-3 font-semibold text-gray-900">{item.ten_doi_tuong}</td>
                         <td className="p-3 text-right space-x-2">
                           <button
                             onClick={() => {
-                              setFormGeneric({
-                                ten: item.ten_doi_tuong,
-                                thu_tu: item.thu_tu || idx + 1,
-                              });
+                              setFormGeneric({ ten: item.ten_doi_tuong, thu_tu: item.thu_tu || idx + 1 });
                               setEditItem(item);
                               setModalType('DT_BHYT');
                             }}
@@ -1707,12 +1453,7 @@ export default function APAGAdminKTXPortal() {
                             📝 Sửa
                           </button>
                           <button
-                            onClick={() =>
-                              handleDeleteGenericOption(
-                                'danh_muc_doi_tuong_bhyt',
-                                item.id
-                              )
-                            }
+                            onClick={() => handleDeleteGenericOption('danh_muc_doi_tuong_bhyt', item.id)}
                             className="px-2 py-1 border border-red-600 text-red-600 hover:bg-red-50 rounded text-[11px] font-bold cursor-pointer"
                           >
                             🗑️ Xóa
@@ -1747,28 +1488,19 @@ export default function APAGAdminKTXPortal() {
                   <thead className="bg-gray-50 border-b text-gray-600 font-bold">
                     <tr>
                       <th className="p-3.5 w-40">Tiêu Đề / Ngày</th>
-                      <th className="p-3.5">
-                        Danh Sách Ngành Học Lịch Nhập Học
-                      </th>
+                      <th className="p-3.5">Danh Sách Ngành Học Lịch Nhập Học</th>
                       <th className="p-3.5 text-right w-32">Thao Tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {lichNhapHocList.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50/80">
-                        <td className="p-3.5 font-bold text-amber-700">
-                          {item.tieu_de_ngay}
-                        </td>
-                        <td className="p-3.5 text-gray-700">
-                          {item.danh_sach_nganh}
-                        </td>
+                        <td className="p-3.5 font-bold text-amber-700">{item.tieu_de_ngay}</td>
+                        <td className="p-3.5 text-gray-700">{item.danh_sach_nganh}</td>
                         <td className="p-3.5 text-right space-x-2">
                           <button
                             onClick={() => {
-                              setFormLich({
-                                tieu_de_ngay: item.tieu_de_ngay,
-                                danh_sach_nganh: item.danh_sach_nganh,
-                              });
+                              setFormLich({ tieu_de_ngay: item.tieu_de_ngay, danh_sach_nganh: item.danh_sach_nganh });
                               setEditItem(item);
                               setModalType('LICH');
                             }}
@@ -1797,11 +1529,7 @@ export default function APAGAdminKTXPortal() {
                 </h3>
                 <button
                   onClick={() => {
-                    setFormCoSo({
-                      ten_toa_nha: '',
-                      loai_phong: '',
-                      tong_so_giuong: 150,
-                    });
+                    setFormCoSo({ ten_toa_nha: '', loai_phong: '', tong_so_giuong: 150 });
                     setModalType('COSO');
                   }}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer"
@@ -1823,15 +1551,9 @@ export default function APAGAdminKTXPortal() {
                   <tbody className="divide-y divide-gray-100">
                     {coSoKtxList.map((item) => (
                       <tr key={item.id_toa_nha} className="hover:bg-gray-50/80">
-                        <td className="p-3.5 font-bold text-gray-900">
-                          {item.ten_toa_nha}
-                        </td>
-                        <td className="p-3.5 font-bold text-amber-700">
-                          {item.loai_phong}
-                        </td>
-                        <td className="p-3.5 font-bold text-blue-900">
-                          {item.tong_so_giuong} chỗ
-                        </td>
+                        <td className="p-3.5 font-bold text-gray-900">{item.ten_toa_nha}</td>
+                        <td className="p-3.5 font-bold text-amber-700">{item.loai_phong}</td>
+                        <td className="p-3.5 font-bold text-blue-900">{item.tong_so_giuong} chỗ</td>
                         <td className="p-3.5 text-right">
                           <button
                             onClick={() => handleDeleteCoSo(item.id_toa_nha)}
@@ -1875,12 +1597,8 @@ export default function APAGAdminKTXPortal() {
                   <tbody className="divide-y divide-gray-100">
                     {bacUuTienList.map((item) => (
                       <tr key={item.id} className="hover:bg-gray-50/80">
-                        <td className="p-3.5 font-bold text-blue-900">
-                          {item.ten_bac}
-                        </td>
-                        <td className="p-3.5 text-gray-700">
-                          {item.mo_ta_tieu_chi}
-                        </td>
+                        <td className="p-3.5 font-bold text-blue-900">{item.ten_bac}</td>
+                        <td className="p-3.5 text-gray-700">{item.mo_ta_tieu_chi}</td>
                         <td className="p-3.5 text-right">
                           <button
                             onClick={() => handleDeleteBac(item.id)}
@@ -1901,100 +1619,60 @@ export default function APAGAdminKTXPortal() {
                 <span>⚙️</span> Cấu hình Năm Học, Trạng Thái Cổng & Hotline
               </h3>
 
-              <form
-                onSubmit={handleSaveSystemConfigs}
-                className="space-y-4 text-xs"
-              >
+              <form onSubmit={handleSaveSystemConfigs} className="space-y-4 text-xs">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-bold text-gray-700 mb-1">
-                      Năm học tuyển sinh (NAM_HOC):
-                    </label>
+                    <label className="block font-bold text-gray-700 mb-1">Năm học tuyển sinh (NAM_HOC):</label>
                     <input
                       type="text"
                       value={systemConfigs.NAM_HOC}
-                      onChange={(e) =>
-                        setSystemConfigs({
-                          ...systemConfigs,
-                          NAM_HOC: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setSystemConfigs({ ...systemConfigs, NAM_HOC: e.target.value })}
                       className="w-full px-3.5 py-2.5 border rounded-xl font-semibold focus:ring-2 focus:ring-[#0E1E45] focus:outline-none"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-gray-700 mb-1">
-                      Trạng thái Cổng (TRANG_THAI_CONG):
-                    </label>
+                    <label className="block font-bold text-gray-700 mb-1">Trạng thái Cổng (TRANG_THAI_CONG):</label>
                     <select
                       value={systemConfigs.TRANG_THAI_CONG}
-                      onChange={(e) =>
-                        setSystemConfigs({
-                          ...systemConfigs,
-                          TRANG_THAI_CONG: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setSystemConfigs({ ...systemConfigs, TRANG_THAI_CONG: e.target.value })}
                       className="w-full px-3.5 py-2.5 border rounded-xl font-semibold focus:ring-2 focus:ring-[#0E1E45] focus:outline-none"
                     >
-                      <option value="AUTO">
-                        AUTO (Tự động theo đếm ngược)
-                      </option>
+                      <option value="AUTO">AUTO (Tự động theo đếm ngược)</option>
                       <option value="OPEN">OPEN (Luôn mở cổng)</option>
                       <option value="CLOSED">CLOSED (Khóa cổng)</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block font-bold text-gray-700 mb-1">
-                      Thời hạn đếm ngược (DEADLINE_DANG_KY):
-                    </label>
+                    <label className="block font-bold text-gray-700 mb-1">Thời hạn đếm ngược (DEADLINE_DANG_KY):</label>
                     <input
                       type="text"
                       value={systemConfigs.DEADLINE_DANG_KY}
-                      onChange={(e) =>
-                        setSystemConfigs({
-                          ...systemConfigs,
-                          DEADLINE_DANG_KY: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setSystemConfigs({ ...systemConfigs, DEADLINE_DANG_KY: e.target.value })}
                       className="w-full px-3.5 py-2.5 border rounded-xl font-mono focus:ring-2 focus:ring-[#0E1E45] focus:outline-none"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block font-bold text-gray-700 mb-1">
-                      Lịch tiếp sinh tổng quan (NGAY_TIEP_SINH):
-                    </label>
+                    <label className="block font-bold text-gray-700 mb-1">Lịch tiếp sinh tổng quan (NGAY_TIEP_SINH):</label>
                     <input
                       type="text"
                       value={systemConfigs.NGAY_TIEP_SINH}
-                      onChange={(e) =>
-                        setSystemConfigs({
-                          ...systemConfigs,
-                          NGAY_TIEP_SINH: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setSystemConfigs({ ...systemConfigs, NGAY_TIEP_SINH: e.target.value })}
                       className="w-full px-3.5 py-2.5 border rounded-xl font-semibold focus:ring-2 focus:ring-[#0E1E45] focus:outline-none"
                       required
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block font-bold text-gray-700 mb-1">
-                      Hotline tư vấn KTX (HOTLINE_KTX):
-                    </label>
+                    <label className="block font-bold text-gray-700 mb-1">Hotline tư vấn KTX (HOTLINE_KTX):</label>
                     <input
                       type="text"
                       value={systemConfigs.HOTLINE_KTX}
-                      onChange={(e) =>
-                        setSystemConfigs({
-                          ...systemConfigs,
-                          HOTLINE_KTX: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setSystemConfigs({ ...systemConfigs, HOTLINE_KTX: e.target.value })}
                       className="w-full px-3.5 py-2.5 border rounded-xl font-semibold focus:ring-2 focus:ring-[#0E1E45] focus:outline-none"
                       required
                     />
@@ -2007,26 +1685,23 @@ export default function APAGAdminKTXPortal() {
                     disabled={actionLoading}
                     className="px-6 py-2.5 bg-[#0E1E45] hover:bg-blue-900 text-white font-bold rounded-xl shadow transition disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                   >
-                    <span>💾</span>{' '}
-                    {actionLoading ? 'Đang lưu...' : 'Lưu thay đổi hệ thống'}
+                    <span>💾</span> {actionLoading ? 'Đang lưu...' : 'Lưu thay đổi hệ thống'}
                   </button>
                 </div>
               </form>
             </div>
           </div>
         ) : isSuperAdmin && mainTab === 'phanquyen' ? (
-          /* TAB 3: PHÂN QUYỀN (CHỈ SUPER_ADMIN) */
+          /* TAB 3: PHÂN QUYỀN */
           <div className="p-4 sm:p-8 space-y-6 bg-gray-50/50">
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                   <h3 className="font-bold text-gray-900 text-base flex items-center gap-2">
-                    <span>🛡️</span> Danh Sách Quản Trị Viên & Phân Quyền Hệ
-                    Thống
+                    <span>🛡️</span> Danh Sách Quản Trị Viên & Phân Quyền Hệ Thống
                   </h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Thêm, sửa đổi vai trò và khóa/mở tài khoản cán bộ được cấp
-                    quyền truy cập.
+                    Thêm, sửa đổi vai trò và khóa/mở tài khoản cán bộ được cấp quyền truy cập.
                   </p>
                 </div>
 
@@ -2059,10 +1734,7 @@ export default function APAGAdminKTXPortal() {
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium">
                     {adminUsersList.map((user) => (
-                      <tr
-                        key={user.admin_id}
-                        className="hover:bg-blue-50/40 transition"
-                      >
+                      <tr key={user.admin_id} className="hover:bg-blue-50/40 transition">
                         <td className="p-3.5 pl-4 font-bold text-gray-900">
                           {user.ho_ten}
                           {user.email === currentAdmin?.email && (
@@ -2071,62 +1743,34 @@ export default function APAGAdminKTXPortal() {
                             </span>
                           )}
                         </td>
-
-                        <td className="p-3.5 font-mono text-gray-700">
-                          {user.email}
-                        </td>
-
+                        <td className="p-3.5 font-mono text-gray-700">{user.email}</td>
                         <td className="p-3.5">
                           <select
                             value={user.role_khoa || 'QUAN_LY_KTX'}
-                            onChange={(e) =>
-                              handleUpdateAdminRole(
-                                user.admin_id,
-                                e.target.value
-                              )
-                            }
+                            onChange={(e) => handleUpdateAdminRole(user.admin_id, e.target.value)}
                             className="px-2.5 py-1 border rounded-lg text-xs font-bold bg-white text-gray-800 focus:ring-2 focus:ring-[#0E1E45] cursor-pointer"
                           >
-                            <option value="SUPER_ADMIN">
-                              SUPER_ADMIN (Toàn quyền)
-                            </option>
-                            <option value="QUAN_LY_KTX">
-                              QUAN_LY_KTX (Duyệt đơn KTX)
-                            </option>
-                            <option value="KE_TOAN_BHYT">
-                              KE_TOAN_BHYT (Kế toán BHYT)
-                            </option>
-                            <option value="PHONG_QUAN_TRI">
-                              PHONG_QUAN_TRI (Quản trị)
-                            </option>
+                            <option value="SUPER_ADMIN">SUPER_ADMIN (Toàn quyền)</option>
+                            <option value="QUAN_LY_KTX">QUAN_LY_KTX (Duyệt đơn KTX)</option>
+                            <option value="KE_TOAN_BHYT">KE_TOAN_BHYT (Kế toán BHYT)</option>
+                            <option value="PHONG_QUAN_TRI">PHONG_QUAN_TRI (Quản trị)</option>
                           </select>
                         </td>
-
                         <td className="p-3.5 text-center">
                           <button
-                            onClick={() =>
-                              handleToggleAdminStatus(
-                                user.admin_id,
-                                user.is_active
-                              )
-                            }
+                            onClick={() => handleToggleAdminStatus(user.admin_id, user.is_active)}
                             className={`px-3 py-1 rounded-full text-[10px] font-bold cursor-pointer transition ${
                               user.is_active
                                 ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                                 : 'bg-red-100 text-red-800 hover:bg-red-200'
                             }`}
                           >
-                            {user.is_active
-                              ? '✓ Đang hoạt động'
-                              : '🔒 Đã tạm khóa'}
+                            {user.is_active ? '✓ Đang hoạt động' : '🔒 Đã tạm khóa'}
                           </button>
                         </td>
-
                         <td className="p-3.5 pr-4 text-right">
                           <button
-                            onClick={() =>
-                              handleDeleteAdminUser(user.admin_id, user.email)
-                            }
+                            onClick={() => handleDeleteAdminUser(user.admin_id, user.email)}
                             className="px-2.5 py-1 border border-red-600 text-red-600 hover:bg-red-50 rounded text-[11px] font-bold cursor-pointer"
                           >
                             🗑️ Xóa
@@ -2158,17 +1802,14 @@ export default function APAGAdminKTXPortal() {
                 <span>📊</span> Tùy Chọn Trường Dữ Liệu Xuất Excel
               </h3>
               <p className="text-xs text-gray-500 mt-1">
-                Tích chọn những thông tin bạn muốn hiển thị trong file Excel (
-                {filteredRegs.length} dòng dữ liệu theo bộ lọc).
+                Tích chọn những thông tin bạn muốn hiển thị trong file Excel ({filteredRegs.length} dòng dữ liệu theo bộ lọc).
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 mb-4 text-xs font-semibold">
               <button
                 type="button"
-                onClick={() =>
-                  setSelectedExportKeys(EXPORT_COLUMNS_CONFIG.map((c) => c.key))
-                }
+                onClick={() => setSelectedExportKeys(EXPORT_COLUMNS_CONFIG.map((c) => c.key))}
                 className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition cursor-pointer"
               >
                 ✓ Chọn tất cả ({EXPORT_COLUMNS_CONFIG.length})
@@ -2183,31 +1824,20 @@ export default function APAGAdminKTXPortal() {
               <button
                 type="button"
                 onClick={() =>
-                  setSelectedExportKeys(
-                    EXPORT_COLUMNS_CONFIG.filter((c) => c.default).map(
-                      (c) => c.key
-                    )
-                  )
+                  setSelectedExportKeys(EXPORT_COLUMNS_CONFIG.filter((c) => c.default).map((c) => c.key))
                 }
                 className="px-3 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-lg hover:bg-amber-100 transition cursor-pointer"
               >
                 ⭐ Mặc định cơ bản
               </button>
               <span className="ml-auto text-gray-500 text-xs font-bold">
-                Đã chọn:{' '}
-                <strong className="text-[#0E1E45]">
-                  {selectedExportKeys.length}
-                </strong>{' '}
-                / {EXPORT_COLUMNS_CONFIG.length} cột
+                Đã chọn: <strong className="text-[#0E1E45]">{selectedExportKeys.length}</strong> / {EXPORT_COLUMNS_CONFIG.length} cột
               </span>
             </div>
 
             <div className="overflow-y-auto space-y-4 pr-1 text-xs flex-1">
               {Object.entries(groupedExportColumns).map(([groupName, cols]) => (
-                <div
-                  key={groupName}
-                  className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2"
-                >
+                <div key={groupName} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                   <div className="font-bold text-gray-800 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
                     <span>📁</span> {groupName} ({cols.length} trường)
                   </div>
@@ -2228,14 +1858,9 @@ export default function APAGAdminKTXPortal() {
                             checked={isChecked}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedExportKeys((prev) => [
-                                  ...prev,
-                                  col.key,
-                                ]);
+                                setSelectedExportKeys((prev) => [...prev, col.key]);
                               } else {
-                                setSelectedExportKeys((prev) =>
-                                  prev.filter((k) => k !== col.key)
-                                );
+                                setSelectedExportKeys((prev) => prev.filter((k) => k !== col.key));
                               }
                             }}
                             className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
@@ -2269,7 +1894,7 @@ export default function APAGAdminKTXPortal() {
         </div>
       )}
 
-      {/* MODAL 2: XÁC NHẬN CHẾ ĐỘ NẠP EXCEL */}
+      {/* MODAL 2: XÁC NHẬN CHẾ ĐỘ NẠP EXCEL SV */}
       {showImportModal && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white text-gray-900 max-w-lg w-full p-6 sm:p-7 rounded-2xl shadow-2xl relative space-y-4">
@@ -2285,14 +1910,9 @@ export default function APAGAdminKTXPortal() {
 
             <div className="text-center space-y-1">
               <span className="text-3xl">📥</span>
-              <h3 className="text-base font-bold text-[#0E1E45]">
-                Chọn Chế Độ Nạp Danh Sách Trúng Tuyển
-              </h3>
+              <h3 className="text-base font-bold text-[#0E1E45]">Chọn Chế Độ Nạp Danh Sách Trúng Tuyển</h3>
               <p className="text-xs text-gray-500">
-                Tệp phát hiện:{' '}
-                <strong className="text-gray-900 font-mono">
-                  {selectedImportFile?.name}
-                </strong>
+                Tệp phát hiện: <strong className="text-gray-900 font-mono">{selectedImportFile?.name}</strong>
               </p>
             </div>
 
@@ -2304,12 +1924,10 @@ export default function APAGAdminKTXPortal() {
                 className="w-full p-4 rounded-xl border-2 border-red-300 bg-red-50/60 hover:bg-red-100 transition text-left space-y-1 cursor-pointer group"
               >
                 <div className="font-bold text-red-900 text-xs sm:text-sm flex items-center gap-1.5">
-                  <span>🚨</span> Chế độ 1: Làm sạch dữ liệu năm cũ & Nạp Năm
-                  Học Mới
+                  <span>🚨</span> Chế độ 1: Làm sạch dữ liệu năm cũ & Nạp Năm Học Mới
                 </div>
                 <p className="text-[11px] text-red-700 leading-relaxed">
-                  Xóa toàn bộ sinh viên, đơn KTX, BHYT cũ để bắt đầu năm tuyển
-                  sinh mới.
+                  Xóa toàn bộ sinh viên, đơn KTX, BHYT cũ để bắt đầu năm tuyển sinh mới.
                 </p>
               </button>
 
@@ -2323,8 +1941,7 @@ export default function APAGAdminKTXPortal() {
                   <span>➕</span> Chế độ 2: Nạp bổ sung / Cập nhật sinh viên mới
                 </div>
                 <p className="text-[11px] text-blue-700 leading-relaxed">
-                  Giữ nguyên dữ liệu hiện tại, chỉ cập nhật hoặc thêm các thí
-                  sinh trúng tuyển đợt bổ sung.
+                  Giữ nguyên dữ liệu hiện tại, chỉ cập nhật hoặc thêm các thí sinh trúng tuyển đợt bổ sung.
                 </p>
               </button>
             </div>
@@ -2359,9 +1976,7 @@ export default function APAGAdminKTXPortal() {
               ✕
             </button>
 
-            {(modalType === 'NGANH' ||
-              modalType === 'HAN_BHYT' ||
-              modalType === 'DT_BHYT') && (
+            {(modalType === 'NGANH' || modalType === 'HAN_BHYT' || modalType === 'DT_BHYT') && (
               <form onSubmit={handleSaveGenericOption} className="space-y-4">
                 <h3 className="font-bold text-base text-[#0E1E45]">
                   {editItem ? 'Chỉnh Sửa Tùy Chọn' : 'Thêm Tùy Chọn Mới'}
@@ -2377,26 +1992,17 @@ export default function APAGAdminKTXPortal() {
                   <input
                     type="text"
                     value={formGeneric.ten}
-                    onChange={(e) =>
-                      setFormGeneric({ ...formGeneric, ten: e.target.value })
-                    }
+                    onChange={(e) => setFormGeneric({ ...formGeneric, ten: e.target.value })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs font-semibold focus:ring-2 focus:ring-[#0E1E45] focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Thứ tự ưu tiên hiển thị:
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Thứ tự ưu tiên hiển thị:</label>
                   <input
                     type="number"
                     value={formGeneric.thu_tu}
-                    onChange={(e) =>
-                      setFormGeneric({
-                        ...formGeneric,
-                        thu_tu: Number(e.target.value),
-                      })
-                    }
+                    onChange={(e) => setFormGeneric({ ...formGeneric, thu_tu: Number(e.target.value) })}
                     className="w-full px-3 py-2 border rounded-lg text-xs"
                   />
                 </div>
@@ -2412,39 +2018,26 @@ export default function APAGAdminKTXPortal() {
             {modalType === 'LICH' && (
               <form onSubmit={handleSaveLich} className="space-y-4">
                 <h3 className="font-bold text-base text-[#0E1E45]">
-                  {editItem
-                    ? 'Chỉnh Sửa Ngày Nhập Học'
-                    : 'Thêm Ngày Nhập Học Mới'}
+                  {editItem ? 'Chỉnh Sửa Ngày Nhập Học' : 'Thêm Ngày Nhập Học Mới'}
                 </h3>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Tiêu đề ngày (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Tiêu đề ngày (*):</label>
                   <input
                     type="text"
                     placeholder="VD: Ngày 25/8/2027"
                     value={formLich.tieu_de_ngay}
-                    onChange={(e) =>
-                      setFormLich({ ...formLich, tieu_de_ngay: e.target.value })
-                    }
+                    onChange={(e) => setFormLich({ ...formLich, tieu_de_ngay: e.target.value })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Danh sách ngành học (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Danh sách ngành học (*):</label>
                   <textarea
                     rows={3}
                     placeholder="VD: Ngành: Quản lý nhà nước, Quản trị văn phòng..."
                     value={formLich.danh_sach_nganh}
-                    onChange={(e) =>
-                      setFormLich({
-                        ...formLich,
-                        danh_sach_nganh: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setFormLich({ ...formLich, danh_sach_nganh: e.target.value })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs"
                   />
@@ -2460,52 +2053,35 @@ export default function APAGAdminKTXPortal() {
 
             {modalType === 'COSO' && (
               <form onSubmit={handleSaveCoSo} className="space-y-4">
-                <h3 className="font-bold text-base text-[#0E1E45]">
-                  Thêm Cơ Sở Ký Túc Xá
-                </h3>
+                <h3 className="font-bold text-base text-[#0E1E45]">Thêm Cơ Sở Ký Túc Xá</h3>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Tên cơ sở KTX (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Tên cơ sở KTX (*):</label>
                   <input
                     type="text"
                     placeholder="VD: KTX 3 tầng (Số 10 đường 3/2)"
                     value={formCoSo.ten_toa_nha}
-                    onChange={(e) =>
-                      setFormCoSo({ ...formCoSo, ten_toa_nha: e.target.value })
-                    }
+                    onChange={(e) => setFormCoSo({ ...formCoSo, ten_toa_nha: e.target.value })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Định mức giá (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Định mức giá (*):</label>
                   <input
                     type="text"
                     placeholder="VD: 900.000đ / SV / tháng"
                     value={formCoSo.loai_phong}
-                    onChange={(e) =>
-                      setFormCoSo({ ...formCoSo, loai_phong: e.target.value })
-                    }
+                    onChange={(e) => setFormCoSo({ ...formCoSo, loai_phong: e.target.value })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Tổng số chỗ (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Tổng số chỗ (*):</label>
                   <input
                     type="number"
                     value={formCoSo.tong_so_giuong}
-                    onChange={(e) =>
-                      setFormCoSo({
-                        ...formCoSo,
-                        tong_so_giuong: Number(e.target.value),
-                      })
-                    }
+                    onChange={(e) => setFormCoSo({ ...formCoSo, tong_so_giuong: Number(e.target.value) })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs"
                   />
@@ -2521,35 +2097,25 @@ export default function APAGAdminKTXPortal() {
 
             {modalType === 'BAC' && (
               <form onSubmit={handleSaveBac} className="space-y-4">
-                <h3 className="font-bold text-base text-[#0E1E45]">
-                  Thêm Bậc Ưu Tiên Xét Duyệt
-                </h3>
+                <h3 className="font-bold text-base text-[#0E1E45]">Thêm Bậc Ưu Tiên Xét Duyệt</h3>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Tên bậc ưu tiên (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Tên bậc ưu tiên (*):</label>
                   <input
                     type="text"
                     placeholder="VD: Bậc 1: Chính sách xã hội"
                     value={formBac.ten_bac}
-                    onChange={(e) =>
-                      setFormBac({ ...formBac, ten_bac: e.target.value })
-                    }
+                    onChange={(e) => setFormBac({ ...formBac, ten_bac: e.target.value })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Mô tả tiêu chí xét duyệt (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Mô tả tiêu chí xét duyệt (*):</label>
                   <textarea
                     rows={3}
                     placeholder="VD: Khuyết tật; con Liệt sĩ, thương binh..."
                     value={formBac.mo_ta_tieu_chi}
-                    onChange={(e) =>
-                      setFormBac({ ...formBac, mo_ta_tieu_chi: e.target.value })
-                    }
+                    onChange={(e) => setFormBac({ ...formBac, mo_ta_tieu_chi: e.target.value })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs"
                   />
@@ -2567,94 +2133,56 @@ export default function APAGAdminKTXPortal() {
               <form onSubmit={handleSaveAdminUser} className="space-y-4">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">🛡️</span>
-                  <h3 className="font-bold text-base text-[#0E1E45]">
-                    Thêm Quản Trị Viên Mới
-                  </h3>
+                  <h3 className="font-bold text-base text-[#0E1E45]">Thêm Quản Trị Viên Mới</h3>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Họ và Tên (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Họ và Tên (*):</label>
                   <input
                     type="text"
                     placeholder="VD: ThS. Nguyễn Văn A"
                     value={formAdminUser.ho_ten}
-                    onChange={(e) =>
-                      setFormAdminUser({
-                        ...formAdminUser,
-                        ho_ten: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setFormAdminUser({ ...formAdminUser, ho_ten: e.target.value })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Email đăng nhập (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Email đăng nhập (*):</label>
                   <input
                     type="email"
                     placeholder="VD: canbo1@apag.edu.vn"
                     value={formAdminUser.email}
-                    onChange={(e) =>
-                      setFormAdminUser({
-                        ...formAdminUser,
-                        email: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setFormAdminUser({ ...formAdminUser, email: e.target.value })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Mật khẩu khởi tạo (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Mật khẩu khởi tạo (*):</label>
                   <input
                     type="text"
                     placeholder="Apag@2026"
                     value={formAdminUser.password}
-                    onChange={(e) =>
-                      setFormAdminUser({
-                        ...formAdminUser,
-                        password: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setFormAdminUser({ ...formAdminUser, password: e.target.value })}
                     required
                     className="w-full px-3 py-2 border rounded-lg text-xs font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Phân quyền vai trò (*):
-                  </label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Phân quyền vai trò (*):</label>
                   <select
                     value={formAdminUser.role_khoa}
-                    onChange={(e) =>
-                      setFormAdminUser({
-                        ...formAdminUser,
-                        role_khoa: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setFormAdminUser({ ...formAdminUser, role_khoa: e.target.value })}
                     className="w-full px-3 py-2 border rounded-lg text-xs font-bold"
                   >
-                    <option value="SUPER_ADMIN">
-                      SUPER_ADMIN (Toàn quyền Quản trị & Phân quyền)
-                    </option>
-                    <option value="QUAN_LY_KTX">
-                      QUAN_LY_KTX (Cán bộ Xét duyệt KTX)
-                    </option>
-                    <option value="KE_TOAN_BHYT">
-                      KE_TOAN_BHYT (Kế toán Xét duyệt BHYT)
-                    </option>
-                    <option value="PHONG_QUAN_TRI">
-                      PHONG_QUAN_TRI (Quản trị hạ tầng)
-                    </option>
+                    <option value="SUPER_ADMIN">SUPER_ADMIN (Toàn quyền Quản trị & Phân quyền)</option>
+                    <option value="QUAN_LY_KTX">QUAN_LY_KTX (Cán bộ Xét duyệt KTX)</option>
+                    <option value="KE_TOAN_BHYT">KE_TOAN_BHYT (Kế toán Xét duyệt BHYT)</option>
+                    <option value="PHONG_QUAN_TRI">PHONG_QUAN_TRI (Quản trị hạ tầng)</option>
                   </select>
                 </div>
 
